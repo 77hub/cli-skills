@@ -1,0 +1,45 @@
+name: Validate skills
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate structure and public content
+        run: node scripts/validate-skills.mjs
+
+      - name: Verify skill discovery
+        run: npx --yes skills@1.5.9 add . --list
+
+      - name: Verify individual installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          for skill in qiqi-business-foundations qiqi-cli qiqi-project; do
+            target="$(mktemp -d)"
+            (
+              cd "$target"
+              git init --quiet
+              npx --yes skills@1.5.9 add "$GITHUB_WORKSPACE" --skill "$skill" --agent universal --copy --yes
+              test -f ".agents/skills/$skill/SKILL.md"
+            )
+          done

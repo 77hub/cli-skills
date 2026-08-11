@@ -1,0 +1,132 @@
+name: Release skills
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid semantic version tag: $tag" >&2
+            exit 1
+          fi
+          recorded_version="$(<VERSION)"
+          if [[ "$recorded_version" != v* ]]; then
+            recorded_version="v$recorded_version"
+          fi
+          if [[ "$tag" != "$recorded_version" ]]; then
+            echo "Release tag $tag does not match VERSION $recorded_version" >&2
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate public skills
+        run: node scripts/validate-skills.mjs
+
+      - name: Verify discovery and individual installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes skills@1.5.9 add . --list
+
+          mapfile -t skill_files < <(find skills -type f -name SKILL.md -print | sort)
+          if ((${#skill_files[@]} == 0)); then
+            echo "No skills found" >&2
+            exit 1
+          fi
+
+          for skill_file in "${skill_files[@]}"; do
+            skill="$(basename "$(dirname "$skill_file")")"
+            target="$(mktemp -d)"
+            (
+              cd "$target"
+              git init --quiet
+              npx --yes skills@1.5.9 add "$GITHUB_WORKSPACE" \
+                --skill "$skill" \
+                --agent universal \
+                --copy \
+                --yes
+              test -f ".agents/skills/$skill/SKILL.md"
+            )
+          done
+
+      - name: Build release archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          package_root="$(mktemp -d)"
+          mkdir -p dist
+
+          mapfile -t skill_files < <(find skills -type f -name SKILL.md -print | sort)
+          for skill_file in "${skill_files[@]}"; do
+            skill_dir="$(dirname "$skill_file")"
+            skill="$(basename "$skill_dir")"
+            skill_package="$package_root/$skill"
+
+            cp -a "$skill_dir" "$skill_package"
+            cp LICENSE "$skill_package/LICENSE"
+            (
+              cd "$package_root"
+              zip -X -q -r "$GITHUB_WORKSPACE/dist/${skill}-${tag}.zip" "$skill"
+            )
+          done
+
+          complete_package="$package_root/77hub-skills"
+          mkdir -p "$complete_package"
+          cp -a README.md LICENSE VERSION skills "$complete_package/"
+          (
+            cd "$package_root"
+            zip -X -q -r "$GITHUB_WORKSPACE/dist/77hub-skills-${tag}.zip" 77hub-skills
+          )
+
+          (
+            cd dist
+            sha256sum ./*.zip > SHA256SUMS
+          )
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          release_args=(
+            "$tag"
+            dist/*.zip
+            dist/SHA256SUMS
+            --verify-tag
+            --title "77hub Skills $tag"
+            --generate-notes
+          )
+          if [[ "$tag" == *-* ]]; then
+            release_args+=(--prerelease)
+          fi
+          gh release create "${release_args[@]}"
