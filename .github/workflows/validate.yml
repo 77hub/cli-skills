@@ -25,7 +25,10 @@ jobs:
           node-version: "20"
 
       - name: Validate structure and public content
-        run: node scripts/validate-skills.mjs
+        run: |
+          node scripts/validate-skills.mjs
+          node scripts/prepare-skillhub-package.mjs --check
+          node scripts/validate-skillhub-release.mjs --all
 
       - name: Verify skill discovery
         run: npx --yes skills@1.5.9 add . --list

@@ -1,0 +1,149 @@
+name: Publish changed skills to SkillHub
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: skillhub-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: qiqi-business-foundations
+            path: skills/foundation/qiqi-business-foundations
+          - name: qiqi-cli
+            path: skills/core/qiqi-cli
+          - name: qiqi-project
+            path: skills/project/qiqi-project
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate release version and manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          recorded_version="$(<VERSION)"
+          if [[ "$recorded_version" != v* ]]; then
+            recorded_version="v$recorded_version"
+          fi
+          if [[ "$GITHUB_REF_NAME" != "$recorded_version" ]]; then
+            echo "Release tag $GITHUB_REF_NAME does not match VERSION $recorded_version" >&2
+            exit 1
+          fi
+          node scripts/validate-skillhub-release.mjs --current
+
+      - name: Match release plan to skill changes
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="publish/releases/${GITHUB_REF_NAME}.json"
+          listed="$(
+            node scripts/validate-skillhub-release.mjs \
+              --has \
+              "$manifest" \
+              "${{ matrix.name }}"
+          )"
+          previous_tag="$(
+            git tag --merged "$GITHUB_SHA" --list 'v*' --sort=-version:refname \
+              | grep -Fvx "$GITHUB_REF_NAME" \
+              | head -n 1 \
+              || true
+          )"
+
+          if [[ -z "$previous_tag" ]]; then
+            changed="true"
+          elif git diff --quiet "$previous_tag" "$GITHUB_SHA" -- "${{ matrix.path }}"; then
+            changed="false"
+          else
+            changed="true"
+          fi
+
+          if [[ "$listed" != "$changed" ]]; then
+            echo "Release plan mismatch for ${{ matrix.name }}: listed=$listed changed=$changed" >&2
+            exit 1
+          fi
+          echo "publish=$listed" >> "$GITHUB_OUTPUT"
+          if [[ "$listed" == "true" ]]; then
+            echo "${{ matrix.name }} is listed and changed; publishing to SkillHub."
+          else
+            echo "${{ matrix.name }} is unchanged and not listed; skipping SkillHub."
+          fi
+
+      - name: Validate and prepare SkillHub package
+        if: steps.changes.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/prepare-skillhub-package.mjs \
+            "${{ matrix.path }}" \
+            "$RUNNER_TEMP/skillhub-${{ matrix.name }}"
+
+      - name: Install SkillHub CLI
+        if: steps.changes.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://skillhub.cn/install/install.sh | bash -s -- --cli-only
+          "$HOME/.local/bin/skillhub" --version
+
+      - name: Authenticate SkillHub CLI
+        if: steps.changes.outputs.publish == 'true'
+        env:
+          SKILLHUB_API_KEY: ${{ secrets.SKILLHUB_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${SKILLHUB_API_KEY:-}" ]]; then
+            echo "Repository secret SKILLHUB_API_KEY is required" >&2
+            exit 1
+          fi
+          "$HOME/.local/bin/skillhub" login \
+            --key "$SKILLHUB_API_KEY" \
+            --host https://api.skillhub.cn
+          "$HOME/.local/bin/skillhub" auth whoami
+
+      - name: Validate SkillHub publication
+        if: steps.changes.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$HOME/.local/bin/skillhub" publish \
+            "$RUNNER_TEMP/skillhub-${{ matrix.name }}" \
+            --dry-run
+
+      - name: Publish to SkillHub
+        if: steps.changes.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          changelog="$(
+            node scripts/validate-skillhub-release.mjs \
+              --changelog \
+              "publish/releases/${GITHUB_REF_NAME}.json" \
+              "${{ matrix.name }}"
+          )"
+          "$HOME/.local/bin/skillhub" publish \
+            "$RUNNER_TEMP/skillhub-${{ matrix.name }}" \
+            --changelog "$changelog"

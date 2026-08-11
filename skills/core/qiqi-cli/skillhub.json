@@ -1,0 +1,6 @@
+{
+  "slug": "77hub-qiqi-cli",
+  "displayName": "企企管理云 qiqi CLI",
+  "summary": "指导 Agent 使用 qiqi CLI 发现对象、查询记录、执行业务动作并安全处理结果。",
+  "license": "Apache-2.0"
+}

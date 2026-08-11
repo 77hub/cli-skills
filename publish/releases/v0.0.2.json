@@ -1,0 +1,20 @@
+{
+  "version": "0.0.2",
+  "skills": [
+    {
+      "name": "qiqi-business-foundations",
+      "type": "minor",
+      "changelog": "首次发布：提供企企管理云业务语义、对象关系和事实判断指南。"
+    },
+    {
+      "name": "qiqi-cli",
+      "type": "minor",
+      "changelog": "首次发布：提供 qiqi CLI 对象发现、记录查询、业务动作及附件操作指南。"
+    },
+    {
+      "name": "qiqi-project",
+      "type": "minor",
+      "changelog": "首次发布：提供项目任务、工时、预算和利润分析指南。"
+    }
+  ]
+}

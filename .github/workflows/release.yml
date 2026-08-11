@@ -47,7 +47,10 @@ jobs:
           node-version: "20"
 
       - name: Validate public skills
-        run: node scripts/validate-skills.mjs
+        run: |
+          node scripts/validate-skills.mjs
+          node scripts/prepare-skillhub-package.mjs --check
+          node scripts/validate-skillhub-release.mjs --current
 
       - name: Verify discovery and individual installation
         shell: bash

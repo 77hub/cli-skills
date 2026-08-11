@@ -1,0 +1,6 @@
+{
+  "slug": "77hub-qiqi-project",
+  "displayName": "企企管理云项目管理",
+  "summary": "指导 Agent 使用 qiqi CLI 处理项目任务、工时以及利润、预算和任务健康分析。",
+  "license": "Apache-2.0"
+}
