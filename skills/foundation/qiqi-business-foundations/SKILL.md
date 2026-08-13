@@ -1,9 +1,13 @@
 ---
 name: qiqi-business-foundations
-description: 企企管理云业务语义与事实判断指南。需要理解档案、单据、主子表、项目型业财阶段、状态、引用、枚举和时间语义，校准利润、预算、任务或工时口径，或判断记录能否支持某项业务结论时使用。
+description: 企企服务业ERP业务语义与事实判断指南。需要理解产品能力域、档案、单据、主子表、项目型业财阶段、状态、引用、枚举和时间语义，校准利润、预算、任务或工时口径，或判断记录能否支持某项业务结论时使用。
 ---
 
-# 企企管理云业务基础
+# 企企服务业ERP业务基础
+
+企企服务业ERP（又称企企管理云）面向服务企业，以项目型经营为重要主线，连接客户与合同、项目执行、收入与成本、收付款、财务核算和经营分析，形成可追溯的业财事实链。
+
+产品能力域用于理解用户意图和寻找业务对象，不证明当前企业已经启用相关模块。当前企业实际可用的对象、字段、动作和权限必须由运行时确认。
 
 ## 权威事实原则
 
@@ -31,6 +35,7 @@ description: 企企管理云业务语义与事实判断指南。需要理解档�
 
 ## 按需读取
 
+- 需要理解企企的产品定位、主要能力域及跨域业务关系时，读取 [product-capability-map.md](references/product-capability-map.md)。
 - 需要理解对象类别、主子表或状态生命周期时，读取 [business-model.md](references/business-model.md)。
 - 需要理解项目型业财阶段和统计口径边界时，读取 [core-business-concepts.md](references/core-business-concepts.md)。
 - 需要寻找标准对象候选时，读取 [standard-object-catalog.md](references/standard-object-catalog.md)。

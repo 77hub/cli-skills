@@ -25,12 +25,20 @@ function walk(directory) {
   });
 }
 
+function repositoryRelative(file) {
+  return path.relative(repositoryRoot, file).split(path.sep).join("/");
+}
+
 function knownSkills() {
-  return new Set(
-    walk(skillsDirectory)
-      .filter((file) => path.basename(file) === "skillhub.json")
-      .map((file) => path.basename(path.dirname(file))),
-  );
+  const skills = new Map();
+  for (const file of walk(skillsDirectory).filter((candidate) =>
+    path.basename(candidate) === "skillhub.json" && !repositoryRelative(candidate).startsWith("skills/develop/"))) {
+    const directory = path.dirname(file);
+    const name = path.basename(directory);
+    if (skills.has(name)) fail(`duplicate Skill directory name: ${name}`);
+    skills.set(name, repositoryRelative(directory));
+  }
+  return skills;
 }
 
 function readManifest(manifestPath) {
@@ -73,7 +81,26 @@ function readManifest(manifestPath) {
     }
     names.add(entry.name);
   }
-  return { file, manifest };
+  return { file, manifest, availableSkills };
+}
+
+function formatReleaseNotes(manifest) {
+  const sections = [
+    "## 本次发布的 Skills",
+    "",
+    "本次 Release 仅包含以下发生变化的 Skill：",
+  ];
+  for (const entry of manifest.skills) {
+    sections.push(
+      "",
+      `### \`${entry.name}\``,
+      "",
+      `**变更级别：** \`${entry.type}\``,
+      "",
+      entry.changelog.trim(),
+    );
+  }
+  return `${sections.join("\n")}\n`;
 }
 
 function currentManifestPath() {
@@ -86,15 +113,15 @@ const args = process.argv.slice(2);
 try {
   if (args.length === 1 && args[0] === "--all") {
     const manifests = walk(releasesDirectory).filter((file) => file.endsWith(".json")).sort();
-    if (manifests.length === 0) fail("no SkillHub release manifests found");
+    if (manifests.length === 0) fail("no release manifests found");
     for (const manifest of manifests) readManifest(manifest);
     const current = readManifest(currentManifestPath());
     const recordedVersion = fs.readFileSync(versionFile, "utf8").trim();
     if (current.manifest.version !== recordedVersion) fail("current release manifest does not match VERSION");
-    console.log(`Validated ${manifests.length} SkillHub release manifest(s)`);
+    console.log(`Validated ${manifests.length} release manifest(s)`);
   } else if (args.length === 1 && args[0] === "--current") {
     const { manifest } = readManifest(currentManifestPath());
-    console.log(`Validated current SkillHub release v${manifest.version}`);
+    console.log(`Validated current release v${manifest.version}`);
   } else if (args.length === 3 && args[0] === "--has") {
     const { manifest } = readManifest(args[1]);
     process.stdout.write(manifest.skills.some((entry) => entry.name === args[2]) ? "true" : "false");
@@ -103,10 +130,19 @@ try {
     const entry = manifest.skills.find((candidate) => candidate.name === args[2]);
     if (!entry) fail(`${args[2]} is not listed in ${args[1]}`);
     process.stdout.write(entry.changelog);
+  } else if (args.length === 2 && args[0] === "--entries") {
+    const { manifest, availableSkills } = readManifest(args[1]);
+    const entries = manifest.skills
+      .map((entry) => `${entry.name}\t${availableSkills.get(entry.name)}`)
+      .join("\n");
+    process.stdout.write(`${entries}\n`);
+  } else if (args.length === 2 && args[0] === "--notes") {
+    const { manifest } = readManifest(args[1]);
+    process.stdout.write(formatReleaseNotes(manifest));
   } else {
-    fail("usage: validate-skillhub-release.mjs --all | --current | --has <manifest> <skill> | --changelog <manifest> <skill>");
+    fail("usage: validate-skillhub-release.mjs --all | --current | --has <manifest> <skill> | --changelog <manifest> <skill> | --entries <manifest> | --notes <manifest>");
   }
 } catch (error) {
-  console.error(`SkillHub release validation failed: ${error.message}`);
+  console.error(`Release manifest validation failed: ${error.message}`);
   process.exit(1);
 }

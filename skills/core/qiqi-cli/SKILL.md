@@ -1,9 +1,15 @@
 ---
 name: qiqi-cli
-description: 使用 qiqi 命令处理企企管理云通用工作。需要核对身份与 profile、发现对象和字段、查询记录或工作视图、处理分页和大输出、执行单据或审批动作、删除记录、处理附件，或核查结果不明确的写入时使用。
+description: 使用已就绪的 qiqi 命令处理企企服务业ERP通用工作。需要核对身份与 profile、发现对象和字段、查询记录或工作视图、处理分页和大输出、执行单据或审批动作、删除记录、处理附件，或核查结果不明确的写入时使用。
 ---
 
-# 企企管理云 qiqi
+# 企企服务业ERP qiqi
+
+## 适用边界
+
+本 Skill 只处理已就绪的 production `qiqi` 运行时。首次安装、更新、重装、CLI 缺失、OAuth 接入或 Agent Skills 接入由 `qiqi-cli-installation` 处理；安装完成后再回到本 Skill 执行身份、查询和业务请求。
+
+用户点名测试环境、联调、验收或测试二进制时，不执行 production 命令，交给 private develop adapter。
 
 ## 权威边界
 
@@ -18,37 +24,45 @@ description: 使用 qiqi 命令处理企企管理云通用工作。需要核对�
 
 以下检查点按任务条件触发，不是每次都要完整执行的线性流程。目标和命令都明确的简单只读任务可以直接走最短路径，例如：确认 profile 后执行 `records get`，再解释返回结果。
 
-| 触发条件 | 必要检查 |
-| --- | --- |
-| 首次访问、profile 不明确或身份发生变化 | 用 `auth status` 在线核对当前企业和用户；优先为业务命令显式传递 `--profile` |
-| 命令、对象、字段、值、视图或动作不明确 | 读取对应 `--help`，并按需使用 `objects`、`describe` 或 `find values` |
-| 名称、单号、人员或记录不唯一 | 先取得候选并消歧；写入必须使用稳定 `RecordRef`、唯一编码或可验证关系 |
-| 需要完整集合或统计 | 检查筛选口径、分页和大输出，不能用候选、样例或第一页代替全集 |
-| 执行动作、删除或附件上传 | 核对身份、稳定目标、用户意图和关键影响，只执行一次最小操作 |
-| 写入超时、连接中断或返回不明确 | 标记“状态未知”，先读取业务事实核查，不直接重试 |
+
+| 触发条件                      | 必要检查                                                     |
+| ------------------------- | -------------------------------------------------------- |
+| 业务授权失败、profile 不明确或身份发生变化 | 用 `auth status` 在线核对当前企业和用户；优先为业务命令显式传递 `--profile`      |
+| 命令、对象、字段、值、视图或动作不明确       | 读取对应 `--help`，并按需使用 `objects`、`describe` 或 `find values` |
+| 名称、单号、人员或记录不唯一            | 先取得候选并消歧；写入必须使用稳定 `RecordRef`、唯一编码或可验证关系                 |
+| 需要完整集合或统计                 | 检查筛选口径、分页和大输出，不能用候选、样例或第一页代替全集                           |
+| 执行动作、删除或附件上传/删除           | 核对身份、稳定目标、用户意图和关键影响，只执行一次最小操作                            |
+| 写入超时、连接中断或返回不明确           | 标记“状态未知”，先读取业务事实核查，不直接重试                                 |
+
 
 任何任务都应按返回证据报告已确认事实、推导、状态未知和能力缺口，但不需要为了形式而重复执行与当前任务无关的发现步骤。
 
 ## 能力路由
 
-| 意图 | 优先使用 |
-| --- | --- |
-| 查看或核对身份 | `auth list`、`auth status` |
-| 发现对象类型 | `objects` |
-| 查看字段类型和时间语义 | `describe fields` |
-| 查看列表字段和少量样例 | `describe list` |
-| 按跨对象文本寻找候选 | `seek` |
-| 查询已知对象的记录集合 | `find list` |
-| 查找枚举、布尔或引用候选值 | `find values` |
-| 查看预置工作列表 | `describe view`、`find view` |
-| 读取或删除唯一记录 | `records get`、`records delete` |
-| 发现并执行某个记录的动作 | `describe actions`、`do-action` |
-| 处理附件 | `records attachments list/url/upload` |
-| 执行专用业务流程 | 读取目标命令及叶子命令 `--help` |
+
+| 意图            | 优先使用                                         |
+| ------------- | -------------------------------------------- |
+| 查看或核对身份       | `auth list`、`auth status`                    |
+| 发现对象类型        | `objects`                                    |
+| 查看字段类型和时间语义   | `describe fields`                            |
+| 查看列表字段和少量样例   | `describe list`                              |
+| 按跨对象文本寻找候选    | `seek`                                       |
+| 查询已知对象的记录集合   | `find list`                                  |
+| 查找枚举或引用候选值     | `find values`                                |
+| 查看预置工作列表      | `describe view`、`find view`                  |
+| 读取或删除唯一记录     | `records get`、`records delete`               |
+| 发现并执行某个记录的动作  | `describe actions`、`do-action`               |
+| 处理附件          | `records attachments list/url/upload/delete` |
+| 执行专用业务流程      | 读取目标命令及叶子命令 `--help`                         |
+
+当前 qiqi 不提供通用 `create` 或 `update`。新建或修改业务单据只能使用当前 profile 已公开的专用领域命令；没有对应命令时，说明当前能力缺口，不构造替代请求。
 
 ## 读取与输出纪律
 
-- 默认使用 JSON 结果。显式表格适合人阅读，不作为 Agent 的完整数据输入。
+- qiqi 的文本输入、输出重定向和本地 JSON 文件统一使用 UTF-8。终端出现乱码时先将宿主终端的输入输出编码切换为 UTF-8，再重新执行只读操作；不得通过丢弃、替换或猜测字符掩盖编码问题。
+- 内部查询、字段选择和结果核对保留对象与字段的 `apiName`；面向用户说明时优先使用当前元数据返回的对象标题和字段标题，减少无必要的技术名称。
+- 标题缺失或不唯一、需要复现命令或排查错误、用户明确询问技术名称时，可以同时展示标题与 `apiName`。不得自行翻译标题或根据标题猜测 `apiName`。
+- 消歧、写入确认和结果核查仍应按需展示唯一业务编码或 `RecordRef`，不能为了简化输出而删除证明记录身份的信息。
 - `describe list` 的样例和 `seek` 的候选都不是全集或唯一性证明。
 - 需要完整集合时持续读取分页，直到返回明确表示没有下一页；不能用第一页推断总量。
 - 收到 `77hub.large-output` 时，读取 `path` 指向的完整 JSON；`summary` 和 `sample` 只是局部说明，不能用于完整分析。
@@ -59,14 +73,15 @@ description: 使用 qiqi 命令处理企企管理云通用工作。需要核对�
 执行前确认当前企业、用户、稳定目标、动作和关键影响。用户已经明确授权同一目标与动作时不重复提问；目标不唯一、范围扩大或破坏性影响不清楚时先消歧。
 
 - qiqi 已提供专用业务命令时，不用名称相近的通用动作代替。
-- 删除必须先理解预检查结果；只有用户明确要求删除且目标已确认时才使用 `--yes`。仅 `deleted: true` 表示删除成功。
+- 删除必须先理解预检查结果；只有用户明确要求删除且目标已确认时才使用 `--yes`。
 - 命令或动作定义过期时，重新读取当前帮助或动作描述，重新检查参数和影响；不得静默重放旧请求。
 - 写调用超时、连接中断或返回不明确时标记为“状态未知”，优先按稳定引用、唯一编码或用户给出的业务事实核查；没有确认前不得盲目重试。
 
 ## 按需读取
 
 - 需要确认 qiqi、profile 或解释错误时，读取 [runtime-context.md](references/runtime-context.md)。
-- 需要发现对象、字段、候选值、视图或完整列表时，读取 [object-discovery-and-query.md](references/object-discovery-and-query.md)。
+- 需要发现对象、字段、候选值、视图或单记录时，读取 [object-discovery.md](references/object-discovery.md)。
+- 需要查询记录列表、构造过滤条件、排序分页或判断查询完整性时，读取 [list-query.md](references/list-query.md)。
 - 需要解释或传递时间值时，读取 [temporal-values.md](references/temporal-values.md)。
 - 需要提交、撤回、删除或处理未知写入结果时，读取 [actions-and-recovery.md](references/actions-and-recovery.md)。
 - 需要处理待审批事项或附件时，读取 [approvals-and-attachments.md](references/approvals-and-attachments.md)。

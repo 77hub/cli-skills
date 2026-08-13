@@ -1,0 +1,6 @@
+{
+  "slug": "77hub-qiqi-cli-installation",
+  "displayName": "企企管理云 qiqi 安装与接入",
+  "summary": "指导 Agent 安装、验证和恢复正式 qiqi CLI、OAuth 与可选企企 Skills。",
+  "license": "Apache-2.0"
+}

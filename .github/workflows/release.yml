@@ -52,20 +52,62 @@ jobs:
           node scripts/prepare-skillhub-package.mjs --check
           node scripts/validate-skillhub-release.mjs --current
 
+      - name: Match release manifest to skill changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="publish/releases/${GITHUB_REF_NAME}.json"
+          previous_tag="$(
+            git tag --merged "$GITHUB_SHA" --list 'v*' --sort=-version:refname \
+              | grep -Fvx "$GITHUB_REF_NAME" \
+              | head -n 1 \
+              || true
+          )"
+
+          mapfile -t skill_files < <(find skills -type f -name skillhub.json -print | sort)
+          if ((${#skill_files[@]} == 0)); then
+            echo "No skills found" >&2
+            exit 1
+          fi
+
+          for metadata_file in "${skill_files[@]}"; do
+            skill_dir="$(dirname "$metadata_file")"
+            skill="$(basename "$skill_dir")"
+            listed="$(
+              node scripts/validate-skillhub-release.mjs \
+                --has \
+                "$manifest" \
+                "$skill"
+            )"
+
+            if [[ -z "$previous_tag" ]]; then
+              changed="true"
+            elif git diff --quiet "$previous_tag" "$GITHUB_SHA" -- "$skill_dir"; then
+              changed="false"
+            else
+              changed="true"
+            fi
+
+            if [[ "$listed" != "$changed" ]]; then
+              echo "Release manifest mismatch for $skill: listed=$listed changed=$changed" >&2
+              exit 1
+            fi
+          done
+
+          if [[ -z "$previous_tag" ]]; then
+            echo "Validated first release manifest against all skills."
+          else
+            echo "Validated release manifest against changes since $previous_tag."
+          fi
+
       - name: Verify discovery and individual installation
         shell: bash
         run: |
           set -euo pipefail
           npx --yes skills@1.5.9 add . --list
 
-          mapfile -t skill_files < <(find skills -type f -name SKILL.md -print | sort)
-          if ((${#skill_files[@]} == 0)); then
-            echo "No skills found" >&2
-            exit 1
-          fi
-
-          for skill_file in "${skill_files[@]}"; do
-            skill="$(basename "$(dirname "$skill_file")")"
+          manifest="publish/releases/${GITHUB_REF_NAME}.json"
+          while IFS=$'\t' read -r skill skill_dir; do
             target="$(mktemp -d)"
             (
               cd "$target"
@@ -77,20 +119,18 @@ jobs:
                 --yes
               test -f ".agents/skills/$skill/SKILL.md"
             )
-          done
+          done < <(node scripts/validate-skillhub-release.mjs --entries "$manifest")
 
       - name: Build release archives
         shell: bash
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME}"
+          manifest="publish/releases/${tag}.json"
           package_root="$(mktemp -d)"
           mkdir -p dist
 
-          mapfile -t skill_files < <(find skills -type f -name SKILL.md -print | sort)
-          for skill_file in "${skill_files[@]}"; do
-            skill_dir="$(dirname "$skill_file")"
-            skill="$(basename "$skill_dir")"
+          while IFS=$'\t' read -r skill skill_dir; do
             skill_package="$package_root/$skill"
 
             cp -a "$skill_dir" "$skill_package"
@@ -99,20 +139,14 @@ jobs:
               cd "$package_root"
               zip -X -q -r "$GITHUB_WORKSPACE/dist/${skill}-${tag}.zip" "$skill"
             )
-          done
-
-          complete_package="$package_root/77hub-skills"
-          mkdir -p "$complete_package"
-          cp -a README.md LICENSE VERSION skills "$complete_package/"
-          (
-            cd "$package_root"
-            zip -X -q -r "$GITHUB_WORKSPACE/dist/77hub-skills-${tag}.zip" 77hub-skills
-          )
+          done < <(node scripts/validate-skillhub-release.mjs --entries "$manifest")
 
           (
             cd dist
             sha256sum ./*.zip > SHA256SUMS
           )
+          node scripts/validate-skillhub-release.mjs --notes "$manifest" > dist/RELEASE_NOTES.md
+          cat dist/RELEASE_NOTES.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub Release
         env:
@@ -127,7 +161,7 @@ jobs:
             dist/SHA256SUMS
             --verify-tag
             --title "77hub Skills $tag"
-            --generate-notes
+            --notes-file dist/RELEASE_NOTES.md
           )
           if [[ "$tag" == *-* ]]; then
             release_args+=(--prerelease)

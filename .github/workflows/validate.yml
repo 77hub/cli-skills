@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for skill in qiqi-business-foundations qiqi-cli qiqi-project; do
+          for skill in qiqi-business-foundations qiqi-cli qiqi-cli-installation qiqi-project; do
             target="$(mktemp -d)"
             (
               cd "$target"

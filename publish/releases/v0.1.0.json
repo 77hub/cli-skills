@@ -1,0 +1,25 @@
+{
+  "version": "0.1.0",
+  "skills": [
+    {
+      "name": "qiqi-business-foundations",
+      "type": "minor",
+      "changelog": "优化技能说明"
+    },
+    {
+      "name": "qiqi-cli",
+      "type": "minor",
+      "changelog": "优化技能说明"
+    },
+    {
+      "name": "qiqi-cli-installation",
+      "type": "minor",
+      "changelog": "安装cli技能说明"
+    },
+    {
+      "name": "qiqi-project",
+      "type": "minor",
+      "changelog": "优化技能说明"
+    }
+  ]
+}

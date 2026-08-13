@@ -1,9 +1,10 @@
-name: Publish changed skills to SkillHub
+name: Publish changed skills to SkillHub (disabled)
 
+# Disabled until the SkillHub CLI supports submitting enterprise team skills
+# for administrator review. Do not restore the tag trigger while this workflow
+# still uses the direct-to-community `skillhub publish` command.
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,6 +26,8 @@ jobs:
             path: skills/foundation/qiqi-business-foundations
           - name: qiqi-cli
             path: skills/core/qiqi-cli
+          - name: qiqi-cli-installation
+            path: skills/core/qiqi-cli-installation
           - name: qiqi-project
             path: skills/project/qiqi-project
 

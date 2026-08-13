@@ -88,8 +88,13 @@ function parseSkill(skillDirectory) {
   return { skillFile, text, frontmatter: match[1], frontmatterLength: match[0].length, name };
 }
 
+function isPublicSkillFile(file) {
+  return !path.relative(skillsRoot, file).split(path.sep).includes("develop");
+}
+
 function validateAll() {
-  const skillFiles = walk(skillsRoot).filter((file) => path.basename(file) === "SKILL.md");
+  const skillFiles = walk(skillsRoot)
+    .filter((file) => path.basename(file) === "SKILL.md" && isPublicSkillFile(file));
   const slugs = new Map();
 
   for (const skillFile of skillFiles) {
@@ -102,7 +107,8 @@ function validateAll() {
     slugs.set(config.slug, skill.name);
   }
 
-  const configFiles = walk(skillsRoot).filter((file) => path.basename(file) === skillHubConfigName);
+  const configFiles = walk(skillsRoot)
+    .filter((file) => path.basename(file) === skillHubConfigName && isPublicSkillFile(file));
   if (configFiles.length !== skillFiles.length) {
     fail(`expected one ${skillHubConfigName} per skill; found ${configFiles.length} configs for ${skillFiles.length} skills`);
   }
