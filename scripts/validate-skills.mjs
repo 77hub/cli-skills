@@ -217,14 +217,17 @@ const qiqiCLIText = walk(path.join(skillsRoot, "core", "qiqi-cli-installation"))
 for (const pattern of [/requires\s+qiqi/i, /qiqi-dev/i, /npm\s*(?:会|将)\s*自动(?:安装|更新).*Skills/i, /placeholder/i]) {
   if (pattern.test(qiqiCLIText)) errors.push(`qiqi-cli-installation: 安装内容检测到禁止内容 ${pattern}`);
 }
-try {
-  const fixtures = JSON.parse(fs.readFileSync(routingFixturesFile, "utf8"));
-  const expected = ["qiqi-cli", "qiqi-cli-installation", "qiqi-dev-runtime"];
-  if (!Array.isArray(fixtures) || [...new Set(fixtures.map((fixture) => fixture.expectedSkill))].sort().join("\n") !== expected.sort().join("\n")) {
-    errors.push("技能路由 fixture 必须覆盖 production 安装、运行与 develop adapter");
+// 路由 fixture 覆盖内部 develop adapter，只留在源仓库；公开镜像按白名单不含 tests/，缺失时跳过。
+if (fs.existsSync(routingFixturesFile)) {
+  try {
+    const fixtures = JSON.parse(fs.readFileSync(routingFixturesFile, "utf8"));
+    const expected = ["qiqi-cli", "qiqi-cli-installation", "qiqi-dev-runtime"];
+    if (!Array.isArray(fixtures) || [...new Set(fixtures.map((fixture) => fixture.expectedSkill))].sort().join("\n") !== expected.sort().join("\n")) {
+      errors.push("技能路由 fixture 必须覆盖 production 安装、运行与 develop adapter");
+    }
+  } catch (error) {
+    errors.push(`技能路由 fixture 无法读取: ${error.message}`);
   }
-} catch (error) {
-  errors.push(`技能路由 fixture 无法读取: ${error.message}`);
 }
 
 if (errors.length > 0) {

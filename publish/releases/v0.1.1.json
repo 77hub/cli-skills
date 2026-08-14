@@ -1,0 +1,25 @@
+{
+  "version": "0.1.1",
+  "skills": [
+    {
+      "name": "qiqi-business-foundations",
+      "type": "patch",
+      "changelog": "first version"
+    },
+    {
+      "name": "qiqi-cli",
+      "type": "patch",
+      "changelog": "first version"
+    },
+    {
+      "name": "qiqi-cli-installation",
+      "type": "patch",
+      "changelog": "first version"
+    },
+    {
+      "name": "qiqi-project",
+      "type": "patch",
+      "changelog": "first version"
+    }
+  ]
+}

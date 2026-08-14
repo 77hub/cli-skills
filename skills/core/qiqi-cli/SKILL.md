@@ -7,9 +7,7 @@ description: 使用已就绪的 qiqi 命令处理企企服务业ERP通用工作�
 
 ## 适用边界
 
-本 Skill 只处理已就绪的 production `qiqi` 运行时。首次安装、更新、重装、CLI 缺失、OAuth 接入或 Agent Skills 接入由 `qiqi-cli-installation` 处理；安装完成后再回到本 Skill 执行身份、查询和业务请求。
-
-用户点名测试环境、联调、验收或测试二进制时，不执行 production 命令，交给 private develop adapter。
+本 Skill 只处理已就绪的  `qiqi` 运行时。首次安装、更新、重装、CLI 缺失、OAuth 接入或 Agent Skills 接入由 `qiqi-cli-installation` 处理；安装完成后再回到本 Skill 执行身份、查询和业务请求。
 
 ## 权威边界
 

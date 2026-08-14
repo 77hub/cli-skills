@@ -31,7 +31,7 @@ qiqi auth status
 需要 Agent Skills 时，再单独安装：
 
 ```bash
-npx --yes skills@1.5.9 add https://github.com/77hub/cli-skills --global --skill "*" --full-depth
+npx --yes skills add 77hub/cli-skills --global --skill "*" --full-depth
 ```
 
 安装命令省略 `--agent`，由安装器在实际 Agent 运行环境中自动探测；浏览器页面无法代替该探测。不要使用 `--all`。若当前客户端不支持上述参数，应停止并按该客户端的受支持方式手动安装，而不是伪造成功结果。
@@ -55,19 +55,6 @@ CLI、授权和 Skills 是三个独立结果：CLI 可用不代表已授权，�
 ## 首版本说明
 
 当前首版本以公开业务能力为主，覆盖产品基础、CLI 通用能力和项目协作。后续新增业务域时，应先补充 Foundation 中的概念口径，再新增对应 Project 或领域 Skill。
-
-## 维护与验证
-
-```bash
-node scripts/validate-skills.mjs
-npx skills add . --list
-```
-
-提交前应确认：
-
-- 所有公开 Skill 的 metadata 合法，且没有内部地址、测试环境或私有源信息。
-- Foundation、Core、Project 三层的引用关系没有循环依赖。
-- 安装与升级说明仍与当前 CLI 和 Skills 安装器兼容。
 
 ## License
 
