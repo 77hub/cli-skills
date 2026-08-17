@@ -38,22 +38,23 @@ description: 使用已就绪的 qiqi 命令处理企企服务业ERP通用工作�
 ## 能力路由
 
 
-| 意图            | 优先使用                                         |
-| ------------- | -------------------------------------------- |
-| 查看或核对身份       | `auth list`、`auth status`                    |
-| 发现对象类型        | `objects`                                    |
-| 查看字段类型和时间语义   | `describe fields`                            |
-| 查看列表字段和少量样例   | `describe list`                              |
-| 按跨对象文本寻找候选    | `seek`                                       |
-| 查询已知对象的记录集合   | `find list`                                  |
-| 查找枚举或引用候选值     | `find values`                                |
-| 查看预置工作列表      | `describe view`、`find view`                  |
-| 读取或删除唯一记录     | `records get`、`records delete`               |
-| 发现并执行某个记录的动作  | `describe actions`、`do-action`               |
-| 处理附件          | `records attachments list/url/upload/delete` |
-| 执行专用业务流程      | 读取目标命令及叶子命令 `--help`                         |
+| 意图 | 优先使用 |
+| --- | --- |
+| 查看或核对身份 | `auth list`、`auth status` |
+| 发现对象类型 | `objects` |
+| 查看字段类型和时间语义 | `describe fields` |
+| 查看通用字段和少量数据样例 | `describe list` |
+| 按跨对象文本寻找候选 | `seek` |
+| 按对象和条件查询记录 | `find list` |
+| 查找枚举或引用候选值 | `find values` |
+| 使用工作台预置视图查询 | 先 `describe view` 了解当前有哪些视图，匹配后再 `find view` |
+| 读取、删除业务记录，或对该记录执行提交、审批及其它业务动作 | `records get`、`records delete`、`describe actions`、`do-action` |
+| 处理附件 | `records attachments list/url/upload/delete` |
+| 执行专用 业务命令 | 从 `qiqi --help` 的「业务命令」起，按父命令 `--help` 逐级发现叶子命令后再执行 |
 
-当前 qiqi 不提供通用 `create` 或 `update`。新建或修改业务单据只能使用当前 profile 已公开的专用领域命令；没有对应命令时，说明当前能力缺口，不构造替代请求。
+`find list` 是按对象构造条件的通用查询入口。工作台预置视图（如「我的单据」「待我审批」）先 `describe view` 再匹配执行；未匹配不要猜测 `viewId`，也不要按对象逐个 `find list` 去复现同一视图。
+
+提交、撤回、同意、驳回等是当前业务记录上的动作，走 `describe actions` 与 `do-action`。当前 profile 未公开对应命令时，说明能力缺口，不构造替代请求。
 
 ## 读取与输出纪律
 
@@ -74,6 +75,7 @@ description: 使用已就绪的 qiqi 命令处理企企服务业ERP通用工作�
 - 删除必须先理解预检查结果；只有用户明确要求删除且目标已确认时才使用 `--yes`。
 - 命令或动作定义过期时，重新读取当前帮助或动作描述，重新检查参数和影响；不得静默重放旧请求。
 - 写调用超时、连接中断或返回不明确时标记为“状态未知”，优先按稳定引用、唯一编码或用户给出的业务事实核查；没有确认前不得盲目重试。
+- 同一意图若用新记录替代，仍有效的旧记录必须处理或向用户声明遗留，不得只追加新记录。
 
 ## 按需读取
 

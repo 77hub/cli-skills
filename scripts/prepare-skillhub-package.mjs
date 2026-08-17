@@ -45,12 +45,15 @@ function readConfig(skillDirectory) {
   }
 
   const keys = Object.keys(config).sort();
-  const expectedKeys = ["displayName", "license", "slug", "summary"].sort();
+  const expectedKeys = ["displayName", "license", "slug", "summary", "version"].sort();
   if (keys.join(",") !== expectedKeys.join(",")) {
     fail(`${configFile}: expected only ${expectedKeys.join(", ")}`);
   }
   if (typeof config.slug !== "string" || !slugPattern.test(config.slug) || config.slug.length > 64) {
     fail(`${configFile}: slug must be lowercase hyphen-case with at most 64 characters`);
+  }
+  if (typeof config.version !== "string" || !semverPattern.test(config.version)) {
+    fail(`${configFile}: version must be a semantic version string`);
   }
   for (const field of ["displayName", "summary", "license"]) {
     if (typeof config[field] !== "string" || config[field].trim() === "") {
@@ -137,11 +140,12 @@ function preparePackage(skillPath, outputPath) {
 
   const skill = parseSkill(skillDirectory);
   const config = readConfig(skillDirectory);
-  const version = readVersion();
+  // 仓库根 VERSION 仍用于发布校验；SkillHub 包版本以 skillhub.json 为准。
+  readVersion();
   const generatedFields = [
     `slug: ${yamlString(config.slug)}`,
     `displayName: ${yamlString(config.displayName)}`,
-    `version: ${yamlString(version)}`,
+    `version: ${yamlString(config.version)}`,
     `summary: ${yamlString(config.summary)}`,
     `license: ${yamlString(config.license)}`,
   ];
@@ -154,7 +158,7 @@ function preparePackage(skillPath, outputPath) {
   fs.writeFileSync(path.join(outputDirectory, "SKILL.md"), generatedSkill, "utf8");
   fs.copyFileSync(licenseFile, path.join(outputDirectory, "LICENSE"));
 
-  console.log(`Prepared ${skill.name} as ${config.slug}@${version} in ${outputDirectory}`);
+  console.log(`Prepared ${skill.name} as ${config.slug}@${config.version} in ${outputDirectory}`);
 }
 
 const args = process.argv.slice(2);

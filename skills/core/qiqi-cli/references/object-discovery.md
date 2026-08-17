@@ -6,7 +6,7 @@
 2. 已知对象但字段类型、时间语义或引用关系不清楚时，用 `describe fields <ObjectType>`。
 3. 只有名称、单号或人名片段时，用 `seek` 获取跨对象有限候选。
 4. 枚举或引用字段需要规范值时，用 `find values <ObjectType.field>`。
-5. 需要使用系统预置工作列表时，用 `describe view` 发现 View，再用 `find view <viewId>` 执行。
+5. 需要工作台预置视图时，用 `describe view` 发现，再用 `find view <viewId>` 执行。
 6. 已有稳定 `RecordRef` 时，用 `records get <RecordRef>` 读取完成任务所需的可见字段。
 
 列表查询不属于本文件范围。对象目录和缓存只产生候选，不证明当前服务端授权；租户之间可能有相似显示名但不同对象、字段和允许值，不凭经验跳过运行时发现。
@@ -32,6 +32,6 @@
 
 ## Views 与单记录
 
-`describe view` 用于发现当前身份可见的预置工作视图及其输出定义，`find view` 用于取得数据。View 独立于 ObjectType，其筛选语义由服务端定义；不要把 View 标题或样例反推成对象状态条件。
+`describe view` 列出当前身份可见的工作台视图及其输出定义，`find view` 执行其中某一个。View 独立于 ObjectType，筛选语义由服务端定义；不要把视图标题或样例反推成对象状态条件，也不要猜测清单中未出现的 `viewId`。何时选用视图而不是 `find list`，以技能正文的能力路由为准。
 
 `records get` 返回当前用户可见的业务字段；省略显式字段时，服务端会按当前记录生效的表单配置选择详情字段，但不保证返回所有隐藏字段或动态动作。需要动作时另用 `describe actions`，需要附件时另用 `records attachments`。

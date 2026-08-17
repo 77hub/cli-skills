@@ -28,7 +28,9 @@ qiqi auth login --method oauth --name production
 qiqi auth status
 ```
 
-需要 Agent Skills 时，再单独安装：
+登录成功会保存新身份或更新同一企业和用户的已有身份，并将该身份设为默认身份；需要改变默认身份时，先用 `qiqi auth list` 查看候选，再执行 `qiqi auth switch <switch-ref>`。
+
+Agent Skills 是可选增强，建议配套安装以获得更好的使用效果；由用户确认需要后再单独安装：
 
 ```bash
 npx --yes skills add 77hub/cli-skills --global --skill "*" --full-depth

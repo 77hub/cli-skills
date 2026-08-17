@@ -11,6 +11,9 @@ const expectedSkills = new Map([
   ["qiqi-cli-installation", "core"],
   ["qiqi-project", "project"],
 ]);
+const credentialSafetyPatterns = [
+  ["不安全凭证恢复指引", /(?:^|\s)--stdin(?:\s|$)|自动降级为|关闭沙箱|禁用系统保护/m],
+];
 const forbiddenPatterns = [
   ["本地地址", /\b(?:localhost|127\.0\.0\.1)\b/i],
   ["内部域名", /\b(?:[a-z0-9-]+\.)*(?:q7link|e7link)\.com\b/i],
@@ -24,6 +27,7 @@ const forbiddenPatterns = [
   ["非产品运行名称", /\b77hub-cli\b|\bqiqi-(?:dev|local)\b/i],
   ["过时能力名称", /\b(?:whoami|list_object_types|explore_object|get_record|get_pending_approvals|decide_approval|change_bill_submission|delete_record|get_async_task_status|get_project|create_task|update_task|execute_task|log_work_hours)\b/],
   ["过时工具或参数", /\b(?:complete_task|assigneeId|dueDate|flowActionId|fileId)\b/],
+  ...credentialSafetyPatterns,
 ];
 const errors = [];
 
@@ -136,7 +140,18 @@ function validateSkillShape(file, text) {
 if (!fs.existsSync(skillsRoot)) errors.push("缺少 skills/ 目录");
 const isDevelopFile = (file) => relative(file).startsWith("skills/develop/");
 const discoveredSkillFiles = walk(skillsRoot).filter((file) => path.basename(file) === "SKILL.md" && !isDevelopFile(file));
+const developMarkdownFiles = walk(path.join(skillsRoot, "develop")).filter((file) => file.endsWith(".md"));
 const discoveredNames = new Set();
+
+for (const file of developMarkdownFiles) {
+  const text = fs.readFileSync(file, "utf8");
+  validateLinks(file, text);
+  validateFencedBlocks(file, text);
+  for (const [label, pattern] of credentialSafetyPatterns) {
+    const match = pattern.exec(text);
+    if (match) errors.push(`${relative(file)}:${lineNumber(text, match.index)}: 检测到${label} ${JSON.stringify(match[0])}`);
+  }
+}
 
 for (const file of discoveredSkillFiles) {
   const text = fs.readFileSync(file, "utf8");
@@ -193,10 +208,13 @@ const requiredContent = new Map([
   ["qiqi-cli", [
     "--profile", "77hub.large-output", "状态未知",
     "records attachments list/url/upload/delete", "records attachments url",
+    "auth switch <switch-ref>", "设为默认",
   ]],
   ["qiqi-cli-installation", [
     "@77hub/cli@latest", "https://github.com/77hub/cli-skills",
     "CLI：", "授权：", "Skills：", "--skill \"*\"", "不得使用 `--all`",
+    "登录成功会保存新身份或更新同一企业和用户的已有身份", "设置 → CLI 管理",
+    "建议配套安装", "用户确认是否需要",
   ]],
   ["qiqi-project", [
     "project task create", "project task update", "project task start",

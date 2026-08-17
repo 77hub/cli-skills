@@ -1,0 +1,25 @@
+{
+  "version": "0.1.2",
+  "skills": [
+    {
+      "name": "qiqi-business-foundations",
+      "type": "patch",
+      "changelog": "-"
+    },
+    {
+      "name": "qiqi-cli",
+      "type": "patch",
+      "changelog": "更新写入规则指引"
+    },
+    {
+      "name": "qiqi-cli-installation",
+      "type": "patch",
+      "changelog": "支持安装的keychain指引能力说明"
+    },
+    {
+      "name": "qiqi-project",
+      "type": "patch",
+      "changelog": "优化项目预算执行的概念揭示范围"
+    }
+  ]
+}

@@ -6,15 +6,18 @@
 
 ## Profile 与身份
 
-一个 profile 表示一个企业和用户身份。业务命令优先显式传递 `--profile <name-or-id>`，避免 `auth switch` 修改后续任务共享的默认状态。
+一个 profile 表示一个企业和用户身份。`auth login` 登录成功会保存或更新身份并将其设为默认；`auth switch <switch-ref>` 只把指定身份设为默认。业务命令优先显式传递 `--profile <switch-ref>`，避免修改后续任务共享的默认状态。
 
 1. 用 `auth list` 查看已有 profile 候选。
 2. 用目标 profile 的 `auth status` 做在线核验。
 3. 核对企业和当前用户是否与用户请求一致。
-4. 只有用户明确希望改变默认 profile 时才使用 `auth switch`。
+4. 只有用户明确希望改变默认 profile 时才使用 `auth switch <switch-ref>`；缺少引用时按提示先执行 `auth list`。
 5. 身份过期或未登录时停止业务操作，按 qiqi 提示完成授权；不索取或输出凭据。
+6. 在线状态必须从 Profile 当前 `credentialBinding` 的实际 provider 读取；不根据 Agent 品牌、终端名称或可见文件猜测或切换 provider。
 
 `auth status --offline` 只能读取本地状态。离线成功不等于服务端身份、企业或权限仍然有效。
+
+`user-file` 只承诺登录进程与调用进程处于同一主机、同一 OS 用户、同一 qiqi 渠道，并可访问同一稳定用户配置目录。任何一项不成立时停止并报告本地边界，不推导为云端同步能力。
 
 ## 运行时帮助
 
