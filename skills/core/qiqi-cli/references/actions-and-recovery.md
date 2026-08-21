@@ -8,6 +8,7 @@
 2. 用 `describe actions <RecordRef>` 读取此刻允许的动作及其 `inputSchema`。
 3. 核对用户意图、当前返回的动作 ID、参数和影响。
 4. 用 `do-action` 执行一次，并依据返回记录或后续最小读取确认结果。
+5. 若返回 `BUSINESS_WARNING`，先向用户展示警告明细；只有用户明确确认后，才追加 `--ignore-warn` 再执行一次。不得自动补该开关重发。`--ignore-warn` 只控制请求头 `Ignore-Warn`，不是动作业务参数。
 
 不要直接改写状态字段，也不要用其它记录曾经出现过的动作推断当前记录可执行。qiqi 已提供专用业务命令的流程必须使用该专用命令，不用名称相近的 `do-action` 代替。具体参数和传参形式以当前 `do-action --help` 及 `describe actions` 返回为准。
 

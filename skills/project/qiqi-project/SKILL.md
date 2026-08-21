@@ -1,6 +1,6 @@
 ---
 name: qiqi-project
-description: 使用 qiqi 命令处理企企服务业ERP项目工作。需要定位项目，创建、修改、开始或完成项目任务、日常任务和子任务，登记项目工时，或分析项目利润、预算执行与任务健康时使用。
+description: 使用 qiqi 命令处理企企服务业ERP项目工作。需要定位项目，创建、修改、开始或完成项目任务、日常任务和子任务，登记项目工时。
 ---
 
 # 企企服务业ERP项目领域
@@ -12,7 +12,6 @@ description: 使用 qiqi 命令处理企企服务业ERP项目工作。需要定�
 - **项目**是任务、工时和业财事实的归集范围；名称只产生候选，稳定 `Project:<id>` 或唯一编码才确认项目。
 - **任务**可能同时承担项目计划/WBS与日常执行两类用途。本技能的专用写入路径只处理当前运行时公开的任务命令；计划层级、汇总规则和依赖关系必须由当前对象元数据确认。
 - **工时**是人员在业务自然日向项目或任务归集的投入事实；其单据阶段、成本归集和预算控制规则以当前企业配置为准，不从一次登记直接推断。
-- **经营分析**沿预算、收入、成本和现金四类事实展开：合同、收入确认与开票不等于收款；成本发生不等于付款；预算不等于执行。
 
 ## 当前 profile 公开 project 域时的操作入口
 
@@ -60,7 +59,5 @@ description: 使用 qiqi 命令处理企企服务业ERP项目工作。需要定�
 
 - 需要理解任务意图、结构、计划与执行工作流时，读取 [task-workflows.md](references/task-workflows.md)。
 - 需要登记或解释项目投入、工时成本与计费依据时，读取 [work-hours.md](references/work-hours.md)。
-- 用户询问项目利润、花费方向、回款或现金情况时，读取 [project-profit-analysis.md](references/project-profit-analysis.md)。
-- 用户询问预算金额、执行金额、差异或超预算时，读取 [project-budget-execution.md](references/project-budget-execution.md)。
 
 只读取当前任务需要的引用文件。

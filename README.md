@@ -2,7 +2,7 @@
 
 本仓库提供企企管理云的 Agent Skills，帮助 AI Agent 在产品语义、CLI 使用、数据查询、记录操作与项目协作中保持一致的边界和流程。
 
-GitHub 仓库：[77hub/cli-skills](https://github.com/77hub/cli-skills)
+上游 GitHub 仓库：[77hub/cli-skills](https://github.com/77hub/cli-skills)；面向安装默认使用自动同步的 Gitee 镜像。
 
 ## 三层结构
 
@@ -24,16 +24,16 @@ GitHub 仓库：[77hub/cli-skills](https://github.com/77hub/cli-skills)
 ```bash
 npm install --global @77hub/cli@latest
 qiqi --version
-qiqi auth login --method oauth --name production
+qiqi auth login --method oauth
 qiqi auth status
 ```
 
 登录成功会保存新身份或更新同一企业和用户的已有身份，并将该身份设为默认身份；需要改变默认身份时，先用 `qiqi auth list` 查看候选，再执行 `qiqi auth switch <switch-ref>`。
 
-Agent Skills 是可选增强，建议配套安装以获得更好的使用效果；由用户确认需要后再单独安装：
+Agent Skills 是可选增强，可提升 AI 对企企业务和 CLI 的理解，但不扩大权限。执行方先检查当前 Agent 是否已存在且可读对应 Skills；已有时不重复安装。缺失时再询问用户并建议安装，只有用户同意后，才根据当前 Agent 类型选择安装方式：
 
 ```bash
-npx --yes skills add 77hub/cli-skills --global --skill "*" --full-depth
+npx --yes skills add https://gitee.com/qiqihub/cli-skills.git --global --skill "*" --full-depth
 ```
 
 安装命令省略 `--agent`，由安装器在实际 Agent 运行环境中自动探测；浏览器页面无法代替该探测。不要使用 `--all`。若当前客户端不支持上述参数，应停止并按该客户端的受支持方式手动安装，而不是伪造成功结果。

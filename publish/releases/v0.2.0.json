@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "skills": [
+    {
+      "name": "qiqi-cli",
+      "type": "minor",
+      "changelog": "支持聚合查询"
+    },
+    {
+      "name": "qiqi-cli-installation",
+      "type": "patch",
+      "changelog": "更新默认授权命名指引"
+    },
+    {
+      "name": "qiqi-project",
+      "type": "patch",
+      "changelog": "移出通用的项目利润说明"
+    }
+  ]
+}

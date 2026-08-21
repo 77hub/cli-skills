@@ -67,7 +67,7 @@ qiqi find list Reimburse --fields "id,billStatus" --where billStatus in BillStat
 
 ## 结构化输入模式
 
-`--input <path|->` 读取 UTF-8 JSON object，`-` 表示 stdin。输入只能包含：
+`--input <path|->` 读取 UTF-8 JSON：`<path>` 表示文件，`-` 表示从 stdin 读取到 EOF。输入必须是单个 JSON object，且只能包含：
 
 - `fields`
 - `where`
@@ -105,6 +105,16 @@ qiqi find list Reimburse --fields "id,billStatus" --where billStatus in BillStat
 ```shell
 qiqi find list Reimburse --input query.json --format json
 ```
+
+也可以把同一个 JSON object 直接写入 stdin：
+
+```text
+command: qiqi find list Reimburse --input - --dry-run
+stdin（UTF-8 JSON，写入后结束输入）:
+{"fields":["id","code"],"where":{"code":{"contains":"RB"}},"limit":20}
+```
+
+`--input -` 与 `--credential-stdin` 不能同时使用，因为二者会争用同一个 stdin。此时应使用已登录 Profile、把查询保存为文件，或改用其它受支持的调用凭证来源；不得把凭证明文写入命令行。
 
 结构化 `where` 必须遵循以下唯一语法：
 
@@ -167,7 +177,7 @@ CLI 在常用模式中保留 argv 原始 UTF-8 文本，不读取 metadata，也
 - offset 分页期间数据持续变化可能造成跨页重复或遗漏；任务要求严格快照一致性时，应说明当前能力边界，不能仅靠重试假装获得快照。
 - 收到 `77hub.large-output` 时，读取 `path` 指向的完整 JSON；`summary`、`sample` 和 `samplePartial` 只描述局部输出。
 - 权限不可见、分页未结束、过滤口径未确认或完整输出未读取时，不声称完成全量统计。
-- `find list` 的结果单位是记录，不提供聚合语义；需要聚合时先检查当前运行时是否公开专用聚合能力，没有则说明能力缺口，不用局部列表模拟全量聚合。
+- `find list` 的结果单位是记录，不提供聚合语义；需要合计、分组或度量互比时使用 `find aggregate`，见 [aggregate-query.md](aggregate-query.md)。不要用分页 list 假装全量汇总。
 
 ## 验证与错误边界
 

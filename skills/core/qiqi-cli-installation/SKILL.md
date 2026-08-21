@@ -5,7 +5,7 @@ description: 安装、更新、重装或修复正式 qiqi，OAuth授权，或为
 
 # 企企服务业ERP qiqi 安装与接入
 
-本 Skill 只负责 production 接入：正式 CLI 安装、OAuth、可选 Agent Skills、验证和恢复。Skills 建议配套安装以获得更好的使用效果，但必须先由用户确认是否需要。CLI、授权、目标终端持续调用和 Skills 是独立结果；不要把任一结果的失败伪装成其它结果的失败或成功。
+本 Skill 只负责 production 接入：正式 CLI 安装、OAuth、可选 Agent Skills、验证和恢复。执行方先检查当前 Agent 是否已存在且可读对应 Skills；已有时不重复安装。缺失时再询问用户并建议安装，只有用户同意后，才根据当前 Agent 类型选择安装方式。CLI、授权、目标终端持续调用和 Skills 是独立结果，不要把任一结果的失败伪装成其它结果的失败或成功。
 
 用户点名测试环境、联调或验收时，停止 production 安装，交给 private develop adapter；不得用 `@77hub/cli` 覆盖测试会话。
 

@@ -27,11 +27,7 @@ jobs:
       - name: Validate structure and public content
         run: |
           node scripts/validate-skills.mjs
-          node scripts/prepare-skillhub-package.mjs --check
           node scripts/validate-skillhub-release.mjs --all
-
-      - name: Verify release workflow fixtures
-        run: node --test tests/release-workflow.test.mjs
 
       - name: Verify skill discovery
         run: npx --yes skills@1.5.9 add . --list

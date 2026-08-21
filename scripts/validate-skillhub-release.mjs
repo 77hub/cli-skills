@@ -4,10 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { discoverPublicSkills, walk } from "./public-skills.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
-const skillsDirectory = path.join(repositoryRoot, "skills");
 const releasesDirectory = path.join(repositoryRoot, "publish", "releases");
 const versionFile = path.join(repositoryRoot, "VERSION");
 const versionPattern = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
@@ -17,28 +17,8 @@ function fail(message) {
   throw new Error(message);
 }
 
-function walk(directory) {
-  if (!fs.existsSync(directory)) return [];
-  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const target = path.join(directory, entry.name);
-    return entry.isDirectory() ? walk(target) : [target];
-  });
-}
-
-function repositoryRelative(file) {
-  return path.relative(repositoryRoot, file).split(path.sep).join("/");
-}
-
 function knownSkills() {
-  const skills = new Map();
-  for (const file of walk(skillsDirectory).filter((candidate) =>
-    path.basename(candidate) === "skillhub.json" && !repositoryRelative(candidate).startsWith("skills/develop/"))) {
-    const directory = path.dirname(file);
-    const name = path.basename(directory);
-    if (skills.has(name)) fail(`duplicate Skill directory name: ${name}`);
-    skills.set(name, repositoryRelative(directory));
-  }
-  return skills;
+  return new Map([...discoverPublicSkills(repositoryRoot)].map(([name, skill]) => [name, skill.directory]));
 }
 
 function readManifest(manifestPath) {
@@ -136,11 +116,14 @@ try {
       .map((entry) => `${entry.name}\t${availableSkills.get(entry.name)}`)
       .join("\n");
     process.stdout.write(`${entries}\n`);
+  } else if (args.length === 1 && args[0] === "--known-entries") {
+    const entries = [...knownSkills()].map(([name, directory]) => `${name}\t${directory}`).join("\n");
+    process.stdout.write(`${entries}\n`);
   } else if (args.length === 2 && args[0] === "--notes") {
     const { manifest } = readManifest(args[1]);
     process.stdout.write(formatReleaseNotes(manifest));
   } else {
-    fail("usage: validate-skillhub-release.mjs --all | --current | --has <manifest> <skill> | --changelog <manifest> <skill> | --entries <manifest> | --notes <manifest>");
+    fail("usage: validate-skillhub-release.mjs --all | --current | --has <manifest> <skill> | --changelog <manifest> <skill> | --entries <manifest> | --known-entries | --notes <manifest>");
   }
 } catch (error) {
   console.error(`Release manifest validation failed: ${error.message}`);

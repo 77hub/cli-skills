@@ -211,10 +211,11 @@ const requiredContent = new Map([
     "auth switch <switch-ref>", "设为默认",
   ]],
   ["qiqi-cli-installation", [
-    "@77hub/cli@latest", "https://github.com/77hub/cli-skills",
+    "@77hub/cli@latest", "https://gitee.com/qiqihub/cli-skills.git",
     "CLI：", "授权：", "Skills：", "--skill \"*\"", "不得使用 `--all`",
     "登录成功会保存新身份或更新同一企业和用户的已有身份", "设置 → CLI 管理",
-    "建议配套安装", "用户确认是否需要",
+    "可选增强", "不扩大权限", "先检查当前 Agent 是否已存在且可读", "已有时不重复安装",
+    "缺失时再询问用户并建议安装", "只有用户同意后", "根据当前 Agent 类型选择安装方式",
   ]],
   ["qiqi-project", [
     "project task create", "project task update", "project task start",
@@ -232,7 +233,36 @@ for (const [name, snippets] of requiredContent) {
 const allSkillText = walk(skillsRoot).filter((file) => file.endsWith(".md") && !isDevelopFile(file)).map((file) => fs.readFileSync(file, "utf8")).join("\n");
 if (/do-action\s+WorkTask(?::|<)/i.test(allSkillText)) errors.push("Project 任务开始或完成不得使用 do-action WorkTask 路径");
 const qiqiCLIText = walk(path.join(skillsRoot, "core", "qiqi-cli-installation")).filter((file) => file.endsWith(".md")).map((file) => fs.readFileSync(file, "utf8")).join("\n");
-for (const pattern of [/requires\s+qiqi/i, /qiqi-dev/i, /npm\s*(?:会|将)\s*自动(?:安装|更新).*Skills/i, /placeholder/i]) {
+const skillsFlow = [
+  "先检查当前 Agent 是否已存在且可读对应 Skills",
+  "已有时",
+  "缺失时再询问用户并建议安装",
+  "只有用户同意后",
+  "根据当前 Agent 类型",
+];
+for (const file of [
+  path.join(skillsRoot, "core", "qiqi-cli-installation", "SKILL.md"),
+  path.join(skillsRoot, "core", "qiqi-cli-installation", "references", "installation.md"),
+]) {
+  const content = fs.readFileSync(file, "utf8");
+  let previous = -1;
+  for (const step of skillsFlow) {
+    const current = content.indexOf(step, previous + 1);
+    if (current < 0 || current <= previous) {
+      errors.push(`${relative(file)}: Skills 流程必须按“探测已有能力 → 缺失时询问并建议 → 用户同意 → 按 Agent 类型安装”排列`);
+      break;
+    }
+    previous = current;
+  }
+}
+for (const pattern of [
+  /requires\s+qiqi/i,
+  /qiqi-dev/i,
+  /npm\s*(?:会|将)\s*自动(?:安装|更新).*Skills/i,
+  /placeholder/i,
+  /skills(?:@[\w.-]+)?\s+add\s+https:\/\/github\.com\/77hub\/cli-skills/i,
+  /auth\s+login[^\n]*--name\s+(?:production|nx-[a-z0-9-]+)/i,
+]) {
   if (pattern.test(qiqiCLIText)) errors.push(`qiqi-cli-installation: 安装内容检测到禁止内容 ${pattern}`);
 }
 // 路由 fixture 覆盖内部 develop adapter，只留在源仓库；公开镜像按白名单不含 tests/，缺失时跳过。

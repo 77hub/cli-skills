@@ -1,7 +1,0 @@
-{
-  "slug": "qiqi-cli-installation",
-  "displayName": "企企服务业ERP qiqi 安装与接入",
-  "version": "1.0.0",
-  "summary": "安装、更新或修复正式 qiqi，完成 OAuth 授权，并按需为当前 Agent 接入企企 Skills；CLI、授权与 Skills 需分别验证。",
-  "license": "Apache-2.0"
-}

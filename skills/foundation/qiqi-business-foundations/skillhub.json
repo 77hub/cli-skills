@@ -1,7 +1,0 @@
-{
-  "slug": "qiqi-business-foundations",
-  "displayName": "企企服务业ERP业务基础",
-  "version": "1.0.0",
-  "summary": "提供稳定业务语义与事实判断：能力域、档案/单据、业财阶段、状态与口径边界，避免把过程单据或名称相似当成最终事实。",
-  "license": "Apache-2.0"
-}

@@ -1,7 +1,0 @@
-{
-  "slug": "qiqi-project",
-  "displayName": "企企服务业ERP项目管理",
-  "version": "1.0.0",
-  "summary": "处理项目定位、任务创建与流转、工时登记，以及项目利润、预算执行与任务健康分析。",
-  "license": "Apache-2.0"
-}
