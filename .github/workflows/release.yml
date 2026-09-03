@@ -46,10 +46,59 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Validate public skills
+      - name: Validate public source and release manifest
+        shell: bash
         run: |
-          node scripts/validate-skills.mjs
-          node scripts/validate-skillhub-release.mjs --current
+          set -euo pipefail
+
+          test ! -e scripts
+          test ! -e skills/develop
+          test ! -e publish/skillhub
+          test ! -e publish/wb-connector
+          if find publish -mindepth 1 -maxdepth 1 ! -name releases -print -quit | grep -q .; then
+            echo "publish/ may contain only releases/ in the public repository" >&2
+            exit 1
+          fi
+          if find skills -type f -name skillhub.json -print -quit | grep -q .; then
+            echo "Private SkillHub metadata must not be published" >&2
+            exit 1
+          fi
+
+          mapfile -t skill_dirs < <(find skills -type f -name SKILL.md -printf '%h\n' | sort)
+          ((${#skill_dirs[@]} > 0))
+          skill_names=()
+          declare -A seen_skills=()
+          for skill_dir in "${skill_dirs[@]}"; do
+            [[ "$skill_dir" =~ ^skills/[^/]+/[^/]+$ ]]
+            skill="${skill_dir##*/}"
+            [[ "$skill" =~ ^[a-z0-9-]+$ ]]
+            [[ -z "${seen_skills[$skill]+present}" ]]
+            seen_skills["$skill"]=true
+            skill_names+=("$skill")
+            grep -Eq "^name:[[:space:]]*['\"]?${skill}['\"]?[[:space:]]*$" "$skill_dir/SKILL.md"
+          done
+
+          manifest="publish/releases/${GITHUB_REF_NAME}.json"
+          expected_version="${GITHUB_REF_NAME#v}"
+          known_skills="$(printf '%s\n' "${skill_names[@]}" | jq -R . | jq -s .)"
+          test -f "$manifest"
+          jq -e \
+            --arg version "$expected_version" \
+            --argjson known "$known_skills" '
+              type == "object"
+              and (keys | sort) == ["skills", "version"]
+              and (.version == $version)
+              and (.skills | type == "array" and length > 0)
+              and (([.skills[].name] | length) == ([.skills[].name] | unique | length))
+              and all(.skills[];
+                type == "object"
+                and (keys | sort) == ["changelog", "name", "type"]
+                and (.name | type == "string")
+                and (.name as $name | ($known | index($name)) != null)
+                and (.type == "patch" or .type == "minor" or .type == "major")
+                and (.changelog | type == "string" and test("[^[:space:]]"))
+              )
+            ' "$manifest" > /dev/null
 
       - name: Match release manifest to skill changes
         shell: bash
@@ -63,25 +112,20 @@ jobs:
               || true
           )"
 
-          known_entries="$(node scripts/validate-skillhub-release.mjs --known-entries)"
-          if [[ -z "$known_entries" ]]; then
-            echo "No public skills found" >&2
-            exit 1
-          fi
+          mapfile -t skill_dirs < <(find skills -type f -name SKILL.md -printf '%h\n' | sort)
+          ((${#skill_dirs[@]} > 0))
 
-          while IFS=$'\t' read -r skill skill_dir; do
-            listed="$(
-              node scripts/validate-skillhub-release.mjs \
-                --has \
-                "$manifest" \
-                "$skill"
-            )"
+          for skill_dir in "${skill_dirs[@]}"; do
+            skill="${skill_dir##*/}"
+            if jq -e --arg skill "$skill" 'any(.skills[]; .name == $skill)' "$manifest" > /dev/null; then
+              listed="true"
+            else
+              listed="false"
+            fi
 
             if [[ -z "$previous_tag" ]]; then
               changed="true"
-            elif git diff --quiet "$previous_tag" "$GITHUB_SHA" -- \
-              "$skill_dir" \
-              ":(exclude)$skill_dir/skillhub.json"; then
+            elif git diff --quiet "$previous_tag" "$GITHUB_SHA" -- "$skill_dir"; then
               changed="false"
             else
               changed="true"
@@ -91,7 +135,7 @@ jobs:
               echo "Release manifest mismatch for $skill: listed=$listed changed=$changed" >&2
               exit 1
             fi
-          done <<< "$known_entries"
+          done
 
           if [[ -z "$previous_tag" ]]; then
             echo "Validated first release manifest against all skills."
@@ -106,7 +150,9 @@ jobs:
           npx --yes skills@1.5.9 add . --list
 
           manifest="publish/releases/${GITHUB_REF_NAME}.json"
-          while IFS=$'\t' read -r skill skill_dir; do
+          while IFS= read -r skill; do
+            skill_dir="$(find skills -mindepth 2 -maxdepth 2 -type d -name "$skill" -print)"
+            [[ -n "$skill_dir" && "$skill_dir" != *$'\n'* ]]
             target="$(mktemp -d)"
             (
               cd "$target"
@@ -118,7 +164,7 @@ jobs:
                 --yes
               test -f ".agents/skills/$skill/SKILL.md"
             )
-          done < <(node scripts/validate-skillhub-release.mjs --entries "$manifest")
+          done < <(jq -r '.skills[].name' "$manifest")
 
       - name: Build release archives
         shell: bash
@@ -129,7 +175,9 @@ jobs:
           package_root="$(mktemp -d)"
           mkdir -p dist
 
-          while IFS=$'\t' read -r skill skill_dir; do
+          while IFS= read -r skill; do
+            skill_dir="$(find skills -mindepth 2 -maxdepth 2 -type d -name "$skill" -print)"
+            [[ -n "$skill_dir" && "$skill_dir" != *$'\n'* ]]
             skill_package="$package_root/$skill"
 
             cp -a "$skill_dir" "$skill_package"
@@ -139,13 +187,20 @@ jobs:
               cd "$package_root"
               zip -X -q -r "$GITHUB_WORKSPACE/dist/${skill}-${tag}.zip" "$skill"
             )
-          done < <(node scripts/validate-skillhub-release.mjs --entries "$manifest")
+          done < <(jq -r '.skills[].name' "$manifest")
 
           (
             cd dist
             sha256sum ./*.zip > SHA256SUMS
           )
-          node scripts/validate-skillhub-release.mjs --notes "$manifest" > dist/RELEASE_NOTES.md
+          {
+            printf '## 77hub Skills %s\n\n' "$tag"
+            printf '本版本发布以下 Skills：\n'
+            jq -r '
+              .skills[]
+              | "\n### `\(.name)`\n\n**变更级别：** `\(.type)`\n\n\(.changelog)"
+            ' "$manifest"
+          } > dist/RELEASE_NOTES.md
           cat dist/RELEASE_NOTES.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub Release

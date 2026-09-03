@@ -9,17 +9,18 @@
 | 层级 | Skill | 职责 |
 | --- | --- | --- |
 | Foundation | `qiqi-business-foundations` | 企企产品定位、实体模型、概念口径与跨 Skill 规则。 |
-| Core | `qiqi-cli-installation` | 正式 CLI 安装、OAuth、可选 Skills 接入、验证与恢复。 |
+| Core | `qiqi-cli-installation` | qiqi 安装、升级、网络与沙箱可见性恢复、登录授权及在线身份验证。 |
 | Core | `qiqi-cli` | 已就绪 CLI 的 Profile 与身份、运行时发现、查询完整性、记录动作、附件和结果恢复。 |
-| Project | `qiqi-project` | 项目、任务、工时与指标的业务工作流。 |
+| Project | `qiqi-project` | 项目、任务与工时的业务工作流。 |
+| Project | `qiqi-project-financial-analysis` | 项目经营的财务事实模型、真实查询路径、项目预算执行与利润口径。 |
 
 安装 Core 与运行 Core 分别负责接入和日常 CLI 使用；具体业务语义由 Foundation 和 Project 层承接。每个 Skill 可被独立安装，完整安装时由引用关系自动带出所需依赖。
 
-测试环境适配仅存在于仓库内部的 `develop` 目录，用于隔离测试 CLI 与测试 Profile；不属于公开分发内容。
+仓库内部的 `develop` 目录负责测试环境适配和测试 Profile 隔离；公开分发使用表中的业务 Skills。
 
 ## 安装
 
-先安装公开 production CLI：
+先安装 qiqi CLI，再完成首次授权和在线身份验证：
 
 ```bash
 npm install --global @77hub/cli@latest
@@ -38,7 +39,7 @@ npx --yes skills add https://gitee.com/qiqihub/cli-skills.git --global --skill "
 
 安装命令省略 `--agent`，由安装器在实际 Agent 运行环境中自动探测；浏览器页面无法代替该探测。不要使用 `--all`。若当前客户端不支持上述参数，应停止并按该客户端的受支持方式手动安装，而不是伪造成功结果。
 
-CLI、授权和 Skills 是三个独立结果：CLI 可用不代表已授权，也不代表 Skills 已安装。`qiqi-cli-installation` 覆盖 CLI 缺失或初次安装时的恢复路径，但不把安装 Skills 作为 CLI 可用的前置条件。
+CLI、授权和 Skills 分别验证：用 `qiqi --version` 验证 CLI，用 `qiqi auth status` 验证在线身份，用目标 Agent 的实际读取结果验证 Skills。`qiqi-cli-installation` 覆盖安装、升级、恢复、首次授权和新增登录身份；Agent Skills 使用上方独立安装流程。
 
 ## 安装与升级约束
 
@@ -51,7 +52,7 @@ CLI、授权和 Skills 是三个独立结果：CLI 可用不代表已授权，�
 
 - Foundation 是产品概念、对象语义和命名口径的唯一权威来源。
 - Core 负责通用 CLI 流程、错误恢复和跨 Skill 的执行前置条件，不重复业务模型定义。
-- Project 仅定义项目域工作流；涉及通用对象、记录或附件操作时引用 Core。
+- Project 层分别定义项目协作工作流与项目经营分析；涉及通用对象、记录或附件操作时引用 Core。
 - CLI 的帮助输出、实际返回值和服务端行为始终优先于 Skill 中的示例。
 
 ## 首版本说明

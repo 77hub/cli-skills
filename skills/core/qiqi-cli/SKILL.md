@@ -7,16 +7,18 @@ description: 使用已就绪的 qiqi 命令处理企企服务业ERP通用工作�
 
 ## 适用边界
 
-本 Skill 只处理已就绪的  `qiqi` 运行时。首次安装、更新、重装、CLI 缺失、OAuth 接入或 Agent Skills 接入由 `qiqi-cli-installation` 处理；安装完成后再回到本 Skill 执行身份、查询和业务请求。
+本 Skill 处理已就绪的 `qiqi`。首次安装、升级、重装、CLI 缺失或登录授权由当前宿主的 Connector 生命周期处理；没有 Connector 托管时由 `qiqi-cli-installation` 处理。CLI 与授权就绪后，再回到本 Skill 执行身份、查询和业务请求。
+
+本 Skill 只生成 `query` 查询命令。如果当前 binary 把 `query` 报告为未知根命令，先执行 `qiqi --version` 记录版本，再按已确认的最低支持版本引导升级；不得自动改用旧兼容根命令，也不得擅自切换 production/internal 渠道。首个支持版本尚未由正式产物确认时，本 Skill 的改版不得先行发布。
 
 ## 权威边界
 
-把当前 qiqi 运行时作为能力和语法权威：
+把当前 qiqi 作为能力和语法权威：
 
 1. 当前命令及参数以 `qiqi --help` 和目标叶子命令帮助为准。
-2. 当前企业下的对象、字段、候选值、视图和动作以 `objects`、`describe`、`find values` 与实际返回为准；字段类型和操作符范围由服务端 metadata 决定，公共 CLI 语法不代表每个字段全部支持。
+2. 当前企业下的对象、字段、候选值、视图和动作以 `objects`、`describe`、`query values` 与实际返回为准；字段类型和操作符范围由服务端 metadata 决定，公共 CLI 语法不代表每个字段全部支持。
 3. 本技能只定义通用能力选择、证据判断和安全执行规则，不预设用户必须加载其它技能，也不把示例当成完整命令契约。
-4. 用户意图决定要完成什么，运行时能力决定当前能否完成；二者不一致时停止操作并说明差异。
+4. 用户意图决定要完成什么，当前 qiqi 能力决定现在能否完成；二者不一致时停止操作并说明差异。
 
 ## 按需检查点
 
@@ -26,9 +28,9 @@ description: 使用已就绪的 qiqi 命令处理企企服务业ERP通用工作�
 | 触发条件                      | 必要检查                                                     |
 | ------------------------- | -------------------------------------------------------- |
 | 业务授权失败、profile 不明确或身份发生变化 | 用 `auth status` 在线核对当前企业和用户；优先为业务命令显式传递 `--profile`      |
-| 命令、对象、字段、值、视图或动作不明确       | 读取对应 `--help`，并按需使用 `objects`、`describe` 或 `find values` |
+| 命令、对象、字段、值、视图或动作不明确       | 读取对应 `--help`，并按需使用 `objects`、`describe` 或 `query values` |
 | 名称、单号、人员或记录不唯一            | 先取得候选并消歧；写入必须使用稳定 `RecordRef`、唯一编码或可验证关系                 |
-| 需要完整集合或统计                 | 明细全集走分页 `find list`；合计/分组/度量互比走 `find aggregate`，不能用第一页或本地加总代替 |
+| 需要完整集合或统计                 | 明细全集走分页 `query list`；合计/分组/度量互比走 `query aggregate`，不能用第一页或本地加总代替 |
 | 执行动作、删除或附件上传/删除           | 核对身份、稳定目标、用户意图和关键影响，只执行一次最小操作                            |
 | 写入超时、连接中断或返回不明确           | 标记“状态未知”，先读取业务事实核查，不直接重试                                 |
 
@@ -45,15 +47,17 @@ description: 使用已就绪的 qiqi 命令处理企企服务业ERP通用工作�
 | 查看字段类型和时间语义 | `describe fields` |
 | 查看通用字段和少量数据样例 | `describe list` |
 | 按跨对象文本寻找候选 | `seek` |
-| 按对象和条件查询记录 | `find list` |
-| 合计、分组统计或度量互比 | `find aggregate` |
-| 查找枚举或引用候选值 | `find values` |
-| 使用工作台预置视图查询 | 先 `describe view` 了解当前有哪些视图，匹配后再 `find view` |
+| 按对象和条件查询记录 | `query list` |
+| 合计、分组统计或度量互比 | `query aggregate` |
+| 查找枚举或引用候选值 | `query values` |
+| 使用工作台预置视图查询 | 先 `describe view` 了解当前有哪些视图，匹配后再 `query view` |
 | 读取、删除业务记录，或对该记录执行提交、审批及其它业务动作 | `records get`、`records delete`、`describe actions`、`do-action` |
 | 处理附件 | `records attachments list/url/upload/delete` |
 | 执行专用 业务命令 | 从 `qiqi --help` 的「业务命令」起，按父命令 `--help` 逐级发现叶子命令后再执行 |
 
-`find list` 是按对象构造条件的通用查询入口。需要合计、分组或度量互比时用 `find aggregate`，不要拉分页明细再本地加总。工作台预置视图（如「我的单据」「待我审批」）先 `describe view` 再匹配执行；未匹配不要猜测 `viewId`，也不要按对象逐个 `find list` 去复现同一视图。
+`query list` 是按对象构造条件的通用查询入口。需要合计、分组或度量互比时用 `query aggregate`，不要拉分页明细再本地加总。工作台预置视图（如「我的单据」「待我审批」）先 `describe view` 再匹配执行；未匹配不要猜测 `viewId`，也不要按对象逐个 `query list` 去复现同一视图。
+
+这些是用户可复制的 CLI 命令；底层 Gateway wire 仍使用 `operation=find` 和既有 mode。不要据此生成 `operation=query`，也不要把内部协议名重新暴露为用户命令。
 
 提交、撤回、同意、驳回等是当前业务记录上的动作，走 `describe actions` 与 `do-action`。收到 `BUSINESS_WARNING` 时先展示警告，用户确认后再加 `--ignore-warn` 重试，不得自动补开关。当前 profile 未公开对应命令时，说明能力缺口，不构造替代请求。
 
@@ -64,8 +68,8 @@ description: 使用已就绪的 qiqi 命令处理企企服务业ERP通用工作�
 - 标题缺失或不唯一、需要复现命令或排查错误、用户明确询问技术名称时，可以同时展示标题与 `apiName`。不得自行翻译标题或根据标题猜测 `apiName`。
 - 消歧、写入确认和结果核查仍应按需展示唯一业务编码或 `RecordRef`，不能为了简化输出而删除证明记录身份的信息。
 - `describe list` 的样例和 `seek` 的候选都不是全集或唯一性证明。
-- 需要完整集合时持续读取分页，直到返回明确表示没有下一页；不能用第一页推断总量。合计、分组或度量互比使用 `find aggregate`，不要用局部列表假装全量汇总。
-- 收到 `77hub.large-output` 时，读取 `path` 指向的完整 JSON；`summary` 和 `sample` 只是局部说明，不能用于完整分析。
+- 需要完整集合时持续读取分页（offset/limit/total），直到返回明确表示没有下一页（hasMore）；不能用第一页推断总量。合计、分组或度量互比使用 `query aggregate`，不要用局部列表假装全量汇总。
+- 收到 `77hub.large-output` 时，打开 `uri` 或读取 `path` 指向的完整 JSON；`summary` 只用于定位主集合和分页，不能用于完整分析。
 - 没有查到可能来自筛选、权限、对象未接入或数据不存在。没有额外证据时只报告“当前范围未查到”。
 
 ## 写入纪律

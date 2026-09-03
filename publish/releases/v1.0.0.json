@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "skills": [
+    {
+      "name": "qiqi-cli",
+      "type": "patch",
+      "changelog": "更新顶级命令，支持私有化部署"
+    },
+    {
+      "name": "qiqi-cli-installation",
+      "type": "patch",
+      "changelog": "安装包分发模式改变优化说明"
+    },
+    {
+      "name": "qiqi-project-financial-analysis",
+      "type": "major",
+      "changelog": "新技能"
+    }
+  ]
+}

@@ -24,10 +24,78 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Validate structure and public content
+      - name: Validate public source
+        shell: bash
         run: |
-          node scripts/validate-skills.mjs
-          node scripts/validate-skillhub-release.mjs --all
+          set -euo pipefail
+
+          test ! -e scripts
+          test ! -e skills/develop
+          test ! -e publish/skillhub
+          test ! -e publish/wb-connector
+          if find publish -mindepth 1 -maxdepth 1 ! -name releases -print -quit | grep -q .; then
+            echo "publish/ may contain only releases/ in the public repository" >&2
+            exit 1
+          fi
+          if find skills -type f -name skillhub.json -print -quit | grep -q .; then
+            echo "Private SkillHub metadata must not be published" >&2
+            exit 1
+          fi
+
+          mapfile -t skill_dirs < <(find skills -type f -name SKILL.md -printf '%h\n' | sort)
+          ((${#skill_dirs[@]} > 0))
+          skill_names=()
+          declare -A seen_skills=()
+          for skill_dir in "${skill_dirs[@]}"; do
+            [[ "$skill_dir" =~ ^skills/[^/]+/[^/]+$ ]]
+            skill="${skill_dir##*/}"
+            [[ "$skill" =~ ^[a-z0-9-]+$ ]]
+            [[ -z "${seen_skills[$skill]+present}" ]]
+            seen_skills["$skill"]=true
+            skill_names+=("$skill")
+            grep -Eq "^name:[[:space:]]*['\"]?${skill}['\"]?[[:space:]]*$" "$skill_dir/SKILL.md"
+          done
+
+          semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
+          known_skills="$(printf '%s\n' "${skill_names[@]}" | jq -R . | jq -s .)"
+
+          validate_manifest() {
+            local manifest="$1"
+            local manifest_version
+
+            jq -e --argjson known "$known_skills" '
+              type == "object"
+              and (keys | sort) == ["skills", "version"]
+              and (.version | type == "string")
+              and (.skills | type == "array" and length > 0)
+              and (([.skills[].name] | length) == ([.skills[].name] | unique | length))
+              and all(.skills[];
+                type == "object"
+                and (keys | sort) == ["changelog", "name", "type"]
+                and (.name | type == "string")
+                and (.name as $name | ($known | index($name)) != null)
+                and (.type == "patch" or .type == "minor" or .type == "major")
+                and (.changelog | type == "string" and test("[^[:space:]]"))
+              )
+            ' "$manifest" > /dev/null
+
+            manifest_version="$(jq -er '.version' "$manifest")"
+            [[ "$manifest_version" =~ $semver ]]
+            [[ "$(basename "$manifest")" == "v${manifest_version}.json" ]]
+          }
+
+          shopt -s nullglob
+          manifests=(publish/releases/*.json)
+          ((${#manifests[@]} > 0))
+          for manifest in "${manifests[@]}"; do
+            validate_manifest "$manifest"
+          done
+
+          current_version="$(<VERSION)"
+          [[ "$current_version" =~ $semver ]]
+          current_manifest="publish/releases/v${current_version}.json"
+          test -f "$current_manifest"
+          jq -e --arg version "$current_version" '.version == $version' "$current_manifest" > /dev/null
 
       - name: Verify skill discovery
         run: npx --yes skills@1.5.9 add . --list
@@ -36,7 +104,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for skill in qiqi-business-foundations qiqi-cli qiqi-cli-installation qiqi-project; do
+          while IFS= read -r skill_dir; do
+            skill="${skill_dir##*/}"
             target="$(mktemp -d)"
             (
               cd "$target"
@@ -44,4 +113,4 @@ jobs:
               npx --yes skills@1.5.9 add "$GITHUB_WORKSPACE" --skill "$skill" --agent universal --copy --yes
               test -f ".agents/skills/$skill/SKILL.md"
             )
-          done
+          done < <(find skills -type f -name SKILL.md -printf '%h\n' | sort)

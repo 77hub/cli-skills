@@ -1,0 +1,20 @@
+{
+  "version": "1.1.0",
+  "skills": [
+    {
+      "name": "qiqi-cli",
+      "type": "minor",
+      "changelog": "修正find改为query更具有语义化的命令"
+    },
+    {
+      "name": "qiqi-project",
+      "type": "patch",
+      "changelog": "关联性更新"
+    },
+    {
+      "name": "qiqi-project-financial-analysis",
+      "type": "patch",
+      "changelog": "更新文档"
+    }
+  ]
+}
