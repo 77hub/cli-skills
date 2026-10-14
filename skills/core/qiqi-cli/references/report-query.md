@@ -17,7 +17,9 @@ qiqi describe report <reportDefinitionId>
 
 ## 阅读条件与输出契约
 
-`describe report` 返回的 `criteria[]` 给出条件的 `name`、可能用于区分重名项的 `criterionId`、`required`、`defaultInput` 和 `inputSchema`；顶层 `selectionGroups/orGroups` 给出条件组合；`datasets[]` 给出输出字段、类型、单位、计算及布局。只使用当前描述声明的条件、操作符、值类型和引用范围；不要从标题、示例或对象查询的 `--where` 规则推断。`defaultInput` 可能依当前方案和身份变化，必填计数不能替代选择组或最终校验。`fixedConditions` 未知时不要补写口径。
+`describe report` 返回的 `criteria[]` 给出条件的 `name`、可能用于区分重名项的 `criterionId`、`required`、`defaultInput` 和 `inputSchema`；顶层 `selectionGroups/orGroups` 给出条件组合；`datasets[]` 仅给出静态输出预览，实际列以同次查询结果为准。顶层 `outputPreview.status=available|runtime|unavailable` 独立描述预览状态；`runtime/unavailable` 不代表不能查询，执行仍以 `queryCapability` 和输入合同为准。只使用当前描述声明的条件、操作符、值类型和引用范围；不要从标题、示例或对象查询的 `--where` 规则推断。`defaultInput` 可能依当前方案和身份变化，必填计数不能替代选择组或最终校验。`fixedConditions` 未知时不要补写口径。
+
+默认值附有 `defaultInputNote` 时，条件的输入 Schema 仍可用，但旧默认值尚不能可靠重放；按 Schema 显式补值，或按用户意图关闭可选条件。不要把 `queryCapability=supported` 理解为默认查询一定成功，也不要静默忽略该筛选。选择组出现 `requiredCriteria` 时，至少填写该必填子集中的一项；组内非必填项不能替代它，仍须遵守 `maxSelected=1`。
 
 大型 `describe report` 可能返回 `77hub.large-output`。其 `summary` 只用于确认方案身份、能力及定位完整文件；`requiresDetails=true` 或 `inputKinds` 均不能代替原 `inputSchema`。用信封的 `path` 读取同次完整描述，或按需本地裁选：
 
@@ -50,7 +52,7 @@ qiqi query report <reportDefinitionId> [条件输入] --validate-only
 - 同名条件需要精确定位时，在对应数组项加入描述返回的 `criterionId`。特殊参数对象用该条件 Schema 所要求的 `input` 结构；不要套用对象查询的 `where` JSON。
 - `--input -` 从 stdin 读取查询 JSON；不能同时用需要读取同一 stdin 的凭证输入选项。
 - `--where` 可重复；同一条件的多个约束是否允许由 `multipleConstraints` 决定，组间 AND/OR 以描述为准。`--omit <name>` 只关闭允许关闭的可选条件，并与直接填写同一条件互斥。`--input` 不与直接条件或关闭参数混用。
-- 复杂选择或输入不确定时可用 `--validate-only` 让服务端准备并校验，读取 `validation`、`effectiveInput`、`appliedCriteria`、`queryContext` 和消息。预检没有执行报表，也没有业务数据；日常明确的简单输入不必机械预检。报表 query 没有 `--dry-run` 或 `--report-version`。
+- 复杂选择或输入不确定时可用 `--validate-only` 让服务端准备并校验，读取 `validation`、`effectiveInput`、`appliedCriteria`、`queryContext` 和消息。响应 `validation.scope=input` 表示输入校验通过，完整业务校验在实际查询时执行；预检没有执行报表，也没有业务数据，不保证正式查询或后端可用；日常明确的简单输入不必机械预检。报表 query 没有 `--dry-run` 或 `--report-version`。
 - 存货类报表（条件含 `invAcctgDef` 与 `accountingPeriod`、且无账簿条件）：`accountingPeriod` 按普通期间参数提交 `input.from`/`input.to`（`AccountingPeriod:<id>`），期间方案取自所选存货计价方案；有 `defaultInput` 时可直接沿用，报 `INVENTORY_ACCTG_DEF_REQUIRED` 时先显式补 `invAcctgDef`，报 `REFERENCE_UNAVAILABLE` 表示期间不属于该计价方案的期间方案。期间显示文本按方案日历解释（如“会计期间 等于 2026年9期”）。
 
 ## 读取同次结果
@@ -58,7 +60,7 @@ qiqi query report <reportDefinitionId> [条件输入] --validate-only
 `query report` 同步执行，默认显示表格；`describe reports`/`describe report` 默认 JSON。需要精确处理时读取表格指向的**同次规范 JSON**，或在首次查询就明确指定 `--format json`。显式 `--output` 的格式由 `--format` 决定，不能只凭 `.json` 扩展名认为保存的是 JSON。若返回 `77hub.large-output`，读取 `path/uri` 指向的完整文件；摘要或表格预览可能省略条件、列或行，不能当作完整结果。文件只包含本次已交付的数据页，不自动取得后续页。
 
 - 以 `reportDefinitionId`、`effectiveReportDefinitionId`、`effectiveInput`、`appliedCriteria`、`queryContext`、`fixedConditions`、`messages` 和 `refreshTimes` 解释本次身份、条件、口径及提示。`queryContext.preparedAt` 是条件准备时点，不是数据刷新时点。`queryId` 用于追踪本次执行，不是断线后恢复查询的命令。旧的 `describe report` 文件也不是本次查询配置的版本快照；解释历史公式须有同次依据。
-- 每个 `datasets[]` 独立核对 `layout`、`fields`、`pagination`、`items`、`hasMore`。普通表的 `values` 按 `fields` 顺序，交叉表按实际 `columns` 顺序并结合行列维度解释；`kind=data/subtotal/total` 分开统计。原引擎小计和总计保持原值，不从预览或当前页重算。
+- 每个 `datasets[]` 独立核对 `layout`、`fields`、`pagination`、`items`、`hasMore`。普通表的 `values` 按 `fields` 顺序，交叉表按实际 `columns` 顺序并结合行列维度解释；`kind=data/subtotal/total/summary` 分开阅读。`semanticStatus=partial` 表示部分语义未确认，不表示查询失败或数据被截断；可按 `fields/headerPath` 阅读 `table` 中已交付的显示值。`summary` 是有原始 `summaryMarkers` 但角色或完整分组键未知的汇总行，不能混入明细统计、按标题猜分组或补造 `groupValues={}`。原引擎小计和总计保持原值，不从预览或当前页重算。
 - `valueMode=typed` 才能按声明类型做精确比较；`display` 只是显示值，不反解析金额、百分比或日期。`states` 中的受限、不适用、空值与数值零不同。输出指标没有同名条件时，只有取得全部必要页、确认粒度/单位/尺度及 typed 值，才可对同次结果做本地筛选，并明确这是“从报表结果筛选”。不要把报表固定 Top N 或累计口径说成业务全集。
 - `queryCapability.pagination=cursor` 时，可按结果中各数据集的 `hasMore/nextCursor` 用 `qiqi query report <同一reportDefinitionId> --cursor <该数据集nextCursor>` 续读同次结果；续读不能带条件、`--input`、`--limit` 或 `--validate-only`。`pagination=none` 时省略或显式 `--limit` 都会完整交付（显式值被忽略，messages 会返回 warning `REPORT_PAGINATION_UNSUPPORTED` 说明报表不支持分页）；没有游标。`--limit` 仅用于支持分页的方案，限制每页输出行数，不限制原报表计算范围；表格预览省略与数据分页分别判断。`--cursor` 只接受 JSON 或默认表格交付；续读页的 `returnedRows/firstRowId/lastRowId` 用于校验无缺口拼接。
 - 带二次筛选的方案（`describe report` 条件含 `secondFilter=true` 与 `secondFilterNote`）：CLI 不模拟页面两段式，按普通条件查询**完整范围**。成功响应会带 warning `REPORT_SECOND_FILTER_NOT_SIMULATED`，页面默认可能只显示一个成员，两者口径不同时以本次条件与结果为准；需要精确单成员时显式传该条件的单成员/范围过滤（如 `subject in Subject:<id>`），需要含下级时显式传 `includeChildren:true`（默认不含下级）。若必须与页面默认成员一致，请让用户在前端关闭该条件的二次筛选开关后另存方案。
@@ -82,7 +84,7 @@ import csv, json, sys
 
 source, mode, target = sys.argv[1], sys.argv[2], sys.argv[3]  # mode: jsonl|csv
 report = json.load(open(source, encoding="utf-8"))
-KIND = {"data": "数据", "subtotal": "小计", "total": "总计"}
+KIND = {"data": "数据", "subtotal": "小计", "total": "总计", "summary": "汇总（语义未确认）"}
 
 def cell(item, index):
     display = item.get("displayValues") or []
@@ -113,14 +115,17 @@ def cell_group(item, ref):
     return "" if raw is None else raw
 
 for dataset in report["datasets"]:
+    if dataset.get("layout") == "sourceLayout":
+        raise ValueError("该数据集为安全原布局，请读取 sourceLayout；不能当作空表导出")
     names, values = columns(dataset)
     rows = [{"_type": "row", "dataset": dataset["datasetName"], "rowId": item["rowId"],
-             "rowType": item["kind"], **dict(zip(names, values(item)))} for item in dataset["items"]]
+             "rowType": item["kind"], "summaryMarkers": item.get("summaryMarkers"), **dict(zip(names, values(item)))} for item in dataset["items"]]
     if mode == "jsonl":
         with open(f"{target}.{dataset['datasetName']}.jsonl", "w", encoding="utf-8") as handle:
             handle.write(json.dumps({"_type": "meta", "reportDefinitionId": report["reportDefinitionId"],
                 "queryId": report.get("queryId"), "datasets": [{"name": dataset["datasetName"],
-                "layout": dataset.get("layout"), "pagination": dataset.get("pagination"),
+                "layout": dataset.get("layout"), "semanticStatus": dataset.get("semanticStatus"),
+                "pagination": dataset.get("pagination"),
                 "offset": dataset.get("offset"), "total": dataset.get("total"),
                 "hasMore": dataset.get("hasMore"), "columns": names}],
                 "appliedCriteria": report.get("appliedCriteria")}, ensure_ascii=False) + "\n")
@@ -134,10 +139,13 @@ for dataset in report["datasets"]:
                 writer.writerow([KIND.get(row["rowType"], row["rowType"])] + [row[name] for name in names])
 ```
 
-- 该片段按 `datasetName` 逐数据集输出；CSV 首列 `rowType=数据|小计|总计`，交叉表列名内嵌完整列头路径，值使用展示文本（`displayValues` 优先），UTF-8 BOM 便于 Excel 打开。小结果无需落盘时，也可用 `jq -c '.datasets[].items[]' <file.json>` 快速查看。
+- 该片段按 `datasetName` 逐数据集输出；CSV 首列 `rowType=数据|小计|总计|汇总（语义未确认）`，交叉表列名内嵌完整列头路径，值使用展示文本（`displayValues` 优先），UTF-8 BOM 便于 Excel 打开。小结果无需落盘时，也可用 `jq -c '.datasets[].items[]' <file.json>` 快速查看。
 - 派生视图不是规范交付，也不能当作游标或结果找回入口；`--cursor` 只认 JSON 与默认表格。`77hub.large-output` 摘要的 `schema`（列名→标题/类型/角色）、`legend`（rowType/state 词表）和 `nextActions`（规范 JSON 路径与本地派生指引）可先建立映射；表格页尾同样给出列定义、图例与下一步。
-- 不要凭预览或派生重算合计：合计只取 `rowType=subtotal|total` 行。大文件按脚本本地裁剪后再读，不把完整大文件塞进上下文。
+- 不要凭预览或派生重算合计：已确认角色的合计取 `rowType=subtotal|total`；`summary` 只能按原显示值说明未知汇总，不称为全表总计。任何本地统计均排除汇总行，并先验证 typed 值、业务身份、粒度及完整范围；不能把 display 字符串反解析后当可靠数值，`semanticStatus=complete` 也不能替代这些检查。大文件按脚本本地裁剪后再读，不把完整大文件塞进上下文。
+
+自定义 EQL 数据源的内层参数必须已有原生外层通道：外层 Schema 参数声明、有效方案输入，以及同名或 `apiParameters` 映射。describe 只发布已有真实条件；缺少通道会明确限制查询，不会生成虚拟条件。配置补全需独立处理，不能通过省略条件扩大查询范围。CLI 对会触发原引擎自动升级保存的旧方案报告只读限制，需先在系统中完成方案升级；不会创建或保存个人方案。旧 p7/p8分页游标已过期，应重新发起查询。
 
 ## 边界说明
-+ 当期尚未支持`freecell` 的报表进行查询，后续会持续提供；
-+ 部分能力表述可查的报表，实际查询可能会受到条件、业务等限制导致实质性不可用，属于滚动式兼容更新的范畴；
+
+- 当前 CLI 暂不支持 `freecell` 电子表格报表查询；目录中可发现该类型不代表可以执行。
+- `queryCapability.status=supported` 表示当前输入契约受支持，不保证默认查询或正式执行成功。实际查询仍可能受到条件、业务规则、后端可用性及结果契约等限制；按同次响应的错误码和消息说明，不将失败视为无匹配数据，也不省略筛选来绕过限制。
