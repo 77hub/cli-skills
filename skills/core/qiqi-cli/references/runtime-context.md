@@ -2,47 +2,33 @@
 
 ## 确认 qiqi
 
-使用用户当前可用的 `qiqi` 命令。在一次任务中保持同一个 qiqi 调用入口；命令缺失或语义不确定时，先检查 `qiqi --version` 和 `qiqi --help`，不要猜测隐藏参数、服务地址或其它运行入口。需要查看详细版本与连接信息时使用 `qiqi --version --format json`；不存在 `version` 子命令。
+命令缺失或含义不确定时，先执行 `qiqi --version` 和 `qiqi --help`。需要版本与连接详情时用 `qiqi --version --format json`，没有 `version` 子命令。帮助中没有公开的选项和子命令不要使用。
 
 ## Profile 与身份
 
-一个 profile 表示一个企业和用户身份。`auth login` 登录成功会保存或更新身份并将其设为默认；`auth switch <switch-ref>` 只把指定身份设为默认。业务命令优先显式传递 `--profile <switch-ref>`，避免修改后续任务共享的默认状态。
+一个 profile 对应一个企业下的一个用户身份。
 
-1. 用 `auth list` 查看已有 profile 候选。
-2. 用目标 profile 的 `auth status` 做在线核验。
-3. 核对企业和当前用户是否与用户请求一致。
-4. 只有用户明确希望改变默认 profile 时才使用 `auth switch <switch-ref>`；缺少引用时按提示先执行 `auth list`。
-5. 身份过期或未登录时停止业务操作，按 qiqi 提示完成授权；不索取或输出凭据。
-6. 在线状态必须从 Profile 当前 `credentialBinding` 的实际 provider 读取；不根据 Agent 品牌、终端名称或可见文件猜测或切换 provider。
+- profile 不明确时，用 `auth list` 选定目标；业务命令显式传 `--profile <switch-ref>`，避免改动默认身份。
+- 需要在线核验，或出现认证、授权失败时，用 `auth status` 核对企业和用户是否与请求一致。`auth status --offline` 只读本地状态，不能证明身份仍然有效。
+- `auth login` 成功和 `auth switch <switch-ref>` 都会把该身份设为默认，影响之后所有未指定 `--profile` 的命令；只有用户明确要求更换默认身份时才执行 `auth switch`。
+- 身份过期或未登录时，停止业务操作，按 qiqi 提示重新授权；不索取或输出凭据。
 
-`auth status --offline` 只能读取本地状态。离线成功不等于服务端身份、企业或权限仍然有效。
+身份确认只说明“以谁的名义调用”，不代表某条记录或动作一定有权限。
 
-`user-file` 只承诺登录进程与调用进程处于同一主机、同一 OS 用户、同一个 qiqi 安装，并可访问同一稳定用户配置目录。任何一项不成立时停止并报告本地边界，不推导为云端同步能力。
+## 默认工作组织
 
-## 业务上下文与默认工作组织
+日常操作沿用当前默认组织。用户要求查看或切换，或 CLI 提示需要选择组织时：
 
-Context 用于查看当前业务上下文和选择默认工作组织。日常操作沿用 CLI 默认值；用户要求查看、切换，或 CLI 提示需要选择组织时再处理。
+1. `qiqi context show` 查看当前上下文。
+2. `qiqi context options org` 查看可选组织，按名称、编码和上级确认目标。
+3. `qiqi context set org <org-id>` 设置。目标不明确时，先请用户选择。
 
-1. 查看当前上下文：`qiqi context show`。
-2. 查看可选组织：`qiqi context options org`，按返回的名称、编码和上级确认目标。
-3. 设置默认工作组织：`qiqi context set org <org-id>`，使用候选返回的 ID；目标不明确时先请用户选择。
-
-设置会影响当前 Profile 的后续命令，与网页门户的组织切换相互独立。操作其它 Profile 时，为上述命令指定同一 `--profile <switch-ref>`。
-
-本期只有 `org` 可设置；业务日期、角色和语言为只读项，以 `context show` 和当前命令帮助为准。
-
-## 命令帮助
-
-- 只有当前意图或参数不明确时才读取帮助；已知命令的简单任务不需要机械重复发现。
-- 读取目标命令 `--help`；专用业务命令还要读取叶子命令帮助。
-- 帮助中没有公开的 option、参数或子命令不得猜测使用。
-- 缓存可用于候选发现和帮助展示，不代表当前授权；执行结果和服务端校验才是权威事实。
-- 帮助提示定义已变化时，重新读取帮助并重新评估，不自动继续旧命令。
+该设置只影响当前 profile 的后续命令，与网页端的组织切换互不影响。目前只有组织可以设置；业务日期、角色和语言只读。
 
 ## 错误处理
 
-保留并解释 qiqi 返回的稳定 `code`、`message`、`requestId` 和安全提示：
+向用户说明错误时，保留 qiqi 返回的 `code`、`message` 和 `requestId`，不暴露凭据。
 
-- 本地 usage error 表示命令或参数不合法；修正后再执行，不能把它描述为业务拒绝。
-- 记录不存在和无权访问可能被统一表达；不根据错误猜测记录是否真实存在。
-- 报告业务问题时优先使用安全提示，不暴露凭据或未公开的运行信息。
+- `CLI_USAGE_ERROR` 表示命令或参数写错了，不是业务拒绝。按 `error.problems` 的 `path`、`message`、`expected` 修正，再按提示查看命令帮助。
+- 记录不存在和无权访问可能返回同一种错误，不据此推断记录是否存在。
+- 使用 `--format json` 时，成功结果输出到 stdout，错误以 JSON 输出到 stderr。

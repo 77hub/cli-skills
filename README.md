@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | Foundation | `qiqi-business-foundations` | 企企产品定位、实体模型、概念口径与跨 Skill 规则。 |
 | Core | `qiqi-cli-installation` | qiqi 安装、升级、网络与沙箱可见性恢复、登录授权及在线身份验证。 |
-| Core | `qiqi-cli` | 已就绪 CLI 的 Profile 与身份、运行时发现、查询完整性、记录动作、附件和结果恢复。 |
+| Core | `qiqi-cli` | 已就绪 CLI 的 Profile 与身份、运行时发现、查询完整性、单据与档案的创建和修改、记录动作、附件和结果恢复。 |
 | Project | `qiqi-project` | 项目、任务与工时的业务工作流。 |
 | Project | `qiqi-project-financial-analysis` | 项目经营的财务事实模型、真实查询路径、项目预算执行与利润口径。 |
 

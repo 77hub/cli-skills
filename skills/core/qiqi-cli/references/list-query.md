@@ -10,10 +10,9 @@
 qiqi query list Reimburse --limit 20 --format json
 ```
 
-省略 `--fields` 时，服务端使用与 `describe list <ObjectType>` 同源、同序的默认 LIST 字段解析结果。`describe list` 用于预览这些字段和少量样例，不是执行查询的前置步骤。
+省略 `--fields` 时，返回与 `describe list <ObjectType>` 相同的默认列表字段。`describe list` 只用于预览这些字段和少量样例，不是查询前必须执行的步骤。
 
-- `describe list` 与默认 `query list` 使用相同字段 resolver，但描述和查询各自存在字段数量上限，极端情况下数量可能不同。
-- 默认响应中的 `fields` FieldTable 是本次实际返回字段的权威说明。
+- 响应中的 `fields` 说明本次实际返回了哪些字段。
 - 显式传入 `--fields` 时，只请求给定字段，不自动补充默认列表字段。
 - 过滤字段不必同时出现在投影中；需要向用户证明过滤结果时再将其加入 `--fields`。
 - 需要固定结果结构、减少输出或进行批量分析时，优先显式指定完成任务所需的最小字段集合。
@@ -173,7 +172,7 @@ stdin（UTF-8 JSON，写入后结束输入）:
 
 ## 基础字段类型
 
-先用 `describe fields <ObjectType>` 确认实际字段类型，再选择值和操作符：
+按当前已确认的字段类型选择值和操作符；类型不明确时再用 `describe fields <ObjectType>` 核对：
 
 - 字符串：值保持原始文本；常用 `eq/ne/contains/begin/end/in/notin`。
 - 整数与数值：使用十进制文本；常用等值、比较、集合和 `between`。金额精度由服务端 metadata 校验。
@@ -184,8 +183,6 @@ stdin（UTF-8 JSON，写入后结束输入）:
 - 时间点：使用带 `Z` 或显式 offset、毫秒精度以内的 RFC3339；不使用无 offset 的本地时间。
 - 空值：字段允许为空时使用 `isnull/notnull`，不要用空字符串代替 null。
 - 列表字段不是普通标量过滤目标；查询子关系使用结构化 includes，或查询 metadata 已提供的计数字段。
-
-CLI 在常用模式中保留 argv 原始 UTF-8 文本，不读取 metadata，也不猜测 boolean、number 或时间类型；最终转换和合法性由服务端完成。
 
 ## 排序、分页与完整性
 

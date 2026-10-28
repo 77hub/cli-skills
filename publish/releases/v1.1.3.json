@@ -1,0 +1,10 @@
+{
+  "version": "1.1.3",
+  "skills": [
+    {
+      "name": "qiqi-cli",
+      "type": "patch",
+      "changelog": "报表支持电子表格。支持新增编辑 自定义对象以及报销单"
+    }
+  ]
+}
