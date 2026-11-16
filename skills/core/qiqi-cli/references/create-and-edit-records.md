@@ -25,6 +25,8 @@ qiqi describe creation <ObjectType> --format json
 
 返回要求选择单据类型时，每个候选的 `description` 列出该类型可填写的明细。按用户的事实落在哪类明细来选：例如打车、地铁属于市内交通，住宿、长途属于差旅。事实横跨多个类型或都不匹配时，向用户说明候选并请其选择，不默认取第一项。
 
+档案没有单据类型，直接执行 `qiqi describe creation <ObjectType>`（不传 `--bill-type-id`）。部分档案仅开放基础资料写入，具体范围与填写约束以本次契约返回的 `guidance`、`fields`、`details` 为准，不要拿查询接口返回的完整字段当作写入模板。
+
 ### 2. 读取填写要求
 
 ```shell
@@ -133,6 +135,8 @@ qiqi records update <RecordRef> --data-file patch.json --format json
 ```
 
 `patch.json` 只写要改的内容。明细行用空补丁预览返回的真实 `id` 识别；没写到的字段和行保持不变，`null` 不会清空字段。
+
+档案的可修改字段可能少于新建字段，并会随记录状态（如系统预置、本位币、组织归属或已被引用）动态收窄。修改前必须先用空补丁预览确认该记录当前可写的 `fields` 和 `details`，不能直接沿用新建契约；切换父级、确认方式等选项可能触发联动带值或清空关联字段，先核对预览结果再保存。
 
 修改表头和已有明细：
 

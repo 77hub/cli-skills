@@ -1,0 +1,10 @@
+{
+  "version": "1.1.4",
+  "skills": [
+    {
+      "name": "qiqi-cli",
+      "type": "patch",
+      "changelog": "增加部分标准档案的新增修改功能"
+    }
+  ]
+}
